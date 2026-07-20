@@ -17,10 +17,10 @@ _start:
     sti
 
     mov [boot_drive], dl
-    mov si, boot_msg
+    lea si, [boot_msg]
     call print_string
 
-    mov si, stage2_dap
+    lea si, [stage2_dap]
     mov ah, 0x42
     mov dl, [boot_drive]
     int 0x13
@@ -42,7 +42,7 @@ print_string:
     ret
 
 disk_error:
-    mov si, error_msg
+    lea si, [error_msg]
     call print_string
     cli
 .hang:
@@ -58,6 +58,7 @@ boot_drive:
     .byte 0
     .byte 0
 
+.align 4
 stage2_dap:
     .byte 0x10
     .byte 0x00

@@ -3,6 +3,7 @@
 #include "tinyos/port_io.h"
 
 #define COM1_PORT 0x3F8u
+#define SERIAL_READY_POLL_LIMIT 100000u
 
 static bool g_console_display_mirror = true;
 
@@ -22,8 +23,15 @@ static void serial_init(void) {
 }
 
 static void serial_write_char(char ch) {
+    uint32_t spins = 0u;
+
     while ((inb(COM1_PORT + 5u) & 0x20u) == 0u) {
+        ++spins;
+        if (spins >= SERIAL_READY_POLL_LIMIT) {
+            break;
+        }
     }
+
     outb(COM1_PORT, (uint8_t)ch);
 }
 

@@ -12,6 +12,7 @@ SECTIONS
     __kernel_start = .;
 
     .text : ALIGN(16) {
+        *(.text.boot)
         *(.text*)
         *(.rodata*)
     } :text
@@ -21,8 +22,10 @@ SECTIONS
     } :data
 
     .bss : ALIGN(16) {
+        __bss_start = .;
         *(COMMON)
         *(.bss*)
+        __bss_end = .;
     } :data
 
     . = ALIGN(16);

@@ -74,6 +74,17 @@
 - **WHEN** 第二阶段完成
 - **THEN** 同一套核心抽象能够在 `ARM64 virt` 和 `RISC-V virt` 上复用并完成最小启动验证
 
+### Requirement: 提供可执行的本地运行时验证环境
+系统 SHALL 在开发机上提供完成 `x86_64 + QEMU` 运行时验证所需的宿主机依赖和复验步骤，避免验证长期停留在“脚本已写好但环境未就绪”的状态。
+
+#### Scenario: 本地环境就绪
+- **WHEN** 开发者执行运行时验证或基线检查
+- **THEN** 宿主机已具备 `qemu-system-x86_64`，相关脚本可以实际启动虚拟机而不是只输出缺少依赖的错误
+
+#### Scenario: 运行时基线完成
+- **WHEN** 开发者执行 `make check-baseline`
+- **THEN** 系统能够完成镜像构建、QEMU 启动、串口日志捕获和关键启动/GUI 标记校验
+
 ## MODIFIED Requirements
 ### Requirement: 项目目标定义
 项目的近期目标从“做一个能跨 x86、ARM、RISC-V、MCU 的个人操作系统”细化为“先做一个在 `x86_64 + QEMU` 上可运行、带简单 GUI、并为 `ARM64/RISC-V` 移植与 `MCU` 子集演进预留清晰抽象边界的个人操作系统基础骨架”。

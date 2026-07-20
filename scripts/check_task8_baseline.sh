@@ -79,14 +79,14 @@ fi
 
 printf 'Booting QEMU headless and capturing serial log...\n'
 set +e
-timeout 8s qemu-system-x86_64 \
+timeout -k 2s 8s qemu-system-x86_64 \
     -drive format=raw,file="${IMAGE_BIN}" \
-    -serial stdio \
+    -serial "file:${LOG_FILE}" \
     -display none \
     -monitor none \
     -no-reboot \
     -no-shutdown \
-    > "${LOG_FILE}" 2>&1
+    > /dev/null 2>&1
 QEMU_STATUS=$?
 set -e
 

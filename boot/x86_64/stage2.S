@@ -27,10 +27,10 @@ _start:
     mov sp, 0x9000
     mov [boot_drive], dl
 
-    mov si, load_msg
+    lea si, [load_msg]
     call print_string
 
-    mov si, kernel_dap
+    lea si, [kernel_dap]
     mov ah, 0x42
     mov dl, [boot_drive]
     int 0x13
@@ -55,7 +55,7 @@ print_string:
     ret
 
 kernel_load_error:
-    mov si, error_msg
+    lea si, [error_msg]
     call print_string
     cli
 .hang:

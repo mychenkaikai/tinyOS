@@ -45,6 +45,11 @@
   - [x] SubTask 9.3: 更新 `README.md`、`docs/release-0-scope.md` 等说明文档，明确当前阶段已经进入最小启动链路、基础内核、显示输入与 GUI MVP 基线，消除旧范围描述造成的歧义
   - [x] SubTask 9.4: 复验 `Task6` 抽象边界，确保后续 `ARM64 virt` 与 `RISC-V virt` 移植主要落在 `boot/`、`arch/`、`platform/`
 
+- [x] Task 10: 补齐本地 QEMU 环境并完成运行时基线验证
+  - [x] SubTask 10.1: 在当前开发机安装或补齐 `qemu-system-x86_64` 运行时依赖
+  - [x] SubTask 10.2: 执行 `make check-baseline`，完成镜像构建、QEMU 启动和串口日志校验
+  - [x] SubTask 10.3: 如运行时验证暴露脚本或环境问题，进行最小修复并复验通过
+
 # Task Dependencies
 - [Task 2] depends on [Task 1]
 - [Task 3] depends on [Task 2]
@@ -54,3 +59,4 @@
 - [Task 7] depends on [Task 1] and [Task 6]
 - [Task 8] depends on [Task 2], [Task 5], [Task 6], and [Task 7]
 - [Task 9] depends on [Task 6] and [Task 8]
+- [Task 10] depends on [Task 8] and [Task 9]
