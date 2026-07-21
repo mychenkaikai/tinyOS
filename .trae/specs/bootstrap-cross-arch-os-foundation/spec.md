@@ -5,6 +5,7 @@
 
 ## What Changes
 - 定义一个以 `x86_64 + QEMU` 为首发目标的最小操作系统基础骨架
+- 将 `x86_64` 启动目标从“仅在 QEMU 中验证”提升为“先在 `QEMU + OVMF` 下完成 `UEFI-first` 启动闭环，并为后续 U 盘真机启动保留同一镜像形态”
 - 约束第一阶段只打通 `启动 -> 内核入口 -> 基础日志 -> 基本内存管理 -> 定时器/任务 -> framebuffer GUI demo`
 - 明确 `ARM64/RISC-V (MPU)` 为第二阶段移植目标，要求最大化复用内核核心抽象
 - 明确 `ARM Cortex-M / RISC-V MCU` 为轻量子集目标，不要求与 MPU 版本具备相同系统能力
@@ -12,8 +13,8 @@
 - **BREAKING** 明确排除早期实现中的高复杂度目标，包括完整用户态、POSIX 兼容、SMP、GPU 驱动、完整网络栈和高性能优化
 
 ## Impact
-- Affected specs: 启动链、架构抽象、内核核心、设备驱动、图形界面、跨架构移植流程
-- Affected code: `boot/`、`arch/`、`platform/`、`kernel/`、`drivers/`、`services/`、`apps/`、构建脚本与 QEMU 启动脚本
+- Affected specs: 启动链、UEFI 镜像格式、虚拟机兼容性、后续真机启动介质、架构抽象、内核核心、设备驱动、图形界面、跨架构移植流程
+- Affected code: `boot/`、`arch/`、`platform/`、`kernel/`、`drivers/`、`services/`、`apps/`、构建脚本、ESP/磁盘镜像生成脚本、QEMU 启动脚本、后续真机启动文档
 
 ## ADDED Requirements
 ### Requirement: 以 x86_64 为起点的最小可运行系统
@@ -26,6 +27,28 @@
 #### Scenario: 成功提供最小图形输出
 - **WHEN** 系统初始化完成基础显示设备
 - **THEN** 用户可以看到 framebuffer 级别的图形输出或 GUI 占位界面
+
+### Requirement: 提供可作为 UEFI 虚拟机启动盘的 x86 启动镜像
+系统 SHALL 为 `x86_64` 生成一种可重复构建的 `UEFI` 原始磁盘镜像；当前阶段该镜像至少能在受支持的 `UEFI` 虚拟机中作为启动盘使用，并保持后续写入 U 盘进行真机验证的基本形态。
+
+#### Scenario: UEFI 虚拟机启动镜像
+- **WHEN** 用户将生成的镜像作为磁盘挂载到受支持的 `x86_64 UEFI` 虚拟机
+- **THEN** 系统能够进入内核并输出与当前阶段一致的启动日志和界面
+
+#### Scenario: 后续 U 盘镜像形态
+- **WHEN** 开发者将当前镜像形态规划到后续真机阶段
+- **THEN** 镜像布局不应依赖“只能被单一调试脚本识别”的专用格式，而应保持 `ESP + BOOTX64.EFI + KERNEL.BIN` 的可延展结构
+
+### Requirement: 明确首批支持的固件与启动兼容边界
+系统 SHALL 先明确并收敛首批支持的固件与硬件边界，优先打通 `UEFI + QEMU/OVMF + x86_64 raw disk image` 路线，而不是同时承诺 `legacy BIOS`、多种虚拟机平台和所有真机主板。
+
+#### Scenario: 首批支持边界
+- **WHEN** 开发者描述当前阶段的可启动范围
+- **THEN** 规格必须明确首批目标至少包含 `QEMU + OVMF`，并定义后续真机 `UEFI` 启动的预期边界与暂不支持项
+
+#### Scenario: 范围外启动方式
+- **WHEN** 用户尝试在未承诺的 `legacy BIOS`、其它未验证虚拟机平台、或真机 `UEFI` 环境下运行镜像
+- **THEN** 项目文档应明确这类场景属于后续阶段，不应被误表述为当前已支持
 
 ### Requirement: 分离架构抽象、平台适配和内核核心
 系统 SHALL 将 CPU 架构相关逻辑、板级/虚拟平台初始化逻辑、以及可复用的内核核心逻辑分层组织，避免把平台细节硬编码进内核核心。
@@ -68,26 +91,37 @@
 
 #### Scenario: 第一阶段验收
 - **WHEN** 第一阶段完成
-- **THEN** 用户能够在 `QEMU x86_64` 中看到启动日志、最小任务/时间机制生效，并能看到基础 GUI 输出
+- **THEN** 用户能够在 `QEMU + OVMF` 中看到 `UEFI` loader 日志、进入内核入口，并在 GOP framebuffer 上看到基础 GUI/demo 输出
+
+#### Scenario: 启动介质验收
+- **WHEN** 当前阶段加入虚拟机与真机介质目标
+- **THEN** 用户能够获得明确的镜像构成、受支持虚拟机配置、真机启动前提以及排障入口
 
 #### Scenario: 第二阶段验收
 - **WHEN** 第二阶段完成
 - **THEN** 同一套核心抽象能够在 `ARM64 virt` 和 `RISC-V virt` 上复用并完成最小启动验证
 
 ### Requirement: 提供可执行的本地运行时验证环境
-系统 SHALL 在开发机上提供完成 `x86_64 + QEMU` 运行时验证所需的宿主机依赖和复验步骤，避免验证长期停留在“脚本已写好但环境未就绪”的状态。
+系统 SHALL 在开发机上提供完成 `x86_64 + QEMU + OVMF` 运行时验证所需的宿主机依赖和复验步骤，避免验证长期停留在“脚本已写好但环境未就绪”的状态。
 
 #### Scenario: 本地环境就绪
 - **WHEN** 开发者执行运行时验证或基线检查
-- **THEN** 宿主机已具备 `qemu-system-x86_64`，相关脚本可以实际启动虚拟机而不是只输出缺少依赖的错误
+- **THEN** 宿主机已具备 `qemu-system-x86_64` 与可用的 `OVMF` 固件文件，相关脚本可以实际启动虚拟机而不是只输出缺少依赖的错误
 
 #### Scenario: 运行时基线完成
 - **WHEN** 开发者执行 `make check-baseline`
-- **THEN** 系统能够完成镜像构建、QEMU 启动、串口日志捕获和关键启动/GUI 标记校验
+- **THEN** 系统能够完成镜像构建、`QEMU + OVMF` 启动、串口/`debugcon` 日志捕获和关键启动/GUI 标记校验
+
+### Requirement: 提供真机 U 盘启动说明与最小验证流程
+系统 SHALL 在后续真机阶段提供将 `UEFI` 镜像写入 U 盘、选择启动介质、识别支持边界和收集失败现象的最小操作说明，以便真机验证不是口头目标。
+
+#### Scenario: 真机验证准备
+- **WHEN** 开发者准备在真机上进行 U 盘启动测试
+- **THEN** 文档必须包含镜像写入方式、数据风险提示、目标机器 `UEFI` 前提条件和最小观察点
 
 ## MODIFIED Requirements
 ### Requirement: 项目目标定义
-项目的近期目标从“做一个能跨 x86、ARM、RISC-V、MCU 的个人操作系统”细化为“先做一个在 `x86_64 + QEMU` 上可运行、带简单 GUI、并为 `ARM64/RISC-V` 移植与 `MCU` 子集演进预留清晰抽象边界的个人操作系统基础骨架”。
+项目的近期目标从“做一个能跨 x86、ARM、RISC-V、MCU 的个人操作系统”细化为“先做一个在 `x86_64 + QEMU/OVMF` 上完成 `UEFI-first` 启动、内核 handoff 和 framebuffer demo 的个人操作系统基础骨架，同时为后续真机 `UEFI` 启动与 `ARM64/RISC-V` 移植及 `MCU` 子集演进预留清晰抽象边界”。
 
 ## REMOVED Requirements
 ### Requirement: 首阶段追求统一的完整跨平台系统能力

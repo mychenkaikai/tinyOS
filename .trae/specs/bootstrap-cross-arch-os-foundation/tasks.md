@@ -50,6 +50,26 @@
   - [x] SubTask 10.2: 执行 `make check-baseline`，完成镜像构建、QEMU 启动和串口日志校验
   - [x] SubTask 10.3: 如运行时验证暴露脚本或环境问题，进行最小修复并复验通过
 
+- [x] Task 11: 将 x86 启动链收敛为 `UEFI-first` 启动介质
+  - [x] SubTask 11.1: 收敛并固定首批支持的启动边界，明确 `QEMU + OVMF + raw disk image` 路线
+  - [x] SubTask 11.2: 将镜像布局调整为 `ESP + BOOTX64.EFI + KERNEL.BIN`，避免继续依赖旧的 `legacy BIOS` 分段引导产物
+  - [x] SubTask 11.3: 提供面向 `UEFI` 虚拟机与后续 U 盘写入的统一镜像产物和清晰命名，避免把开发中间产物误当可启动介质
+
+- [x] Task 12: 建立首批 `UEFI` 虚拟机启动兼容基线
+  - [x] SubTask 12.1: 明确首批受支持虚拟机配置为 `QEMU + OVMF`
+  - [x] SubTask 12.2: 补充 `debugcon`、串口日志与屏幕截图验证记录，证明 `UEFI` loader、kernel handoff 与 framebuffer demo 已跑通
+  - [x] SubTask 12.3: 记录当前不承诺支持的启动方式，例如 `legacy BIOS`、非 `OVMF` 虚拟机配置和未验证真机环境
+
+- [ ] Task 13: 建立真机 `UEFI` U 盘启动路径
+  - [ ] SubTask 13.1: 提供将当前原始镜像写入 U 盘的最小操作说明与数据风险提示
+  - [ ] SubTask 13.2: 明确真机启动前提条件，例如 `x86_64 UEFI`、可从外部介质启动、以及串口/屏幕观察点
+  - [ ] SubTask 13.3: 设计真机 `UEFI` 启动 smoke test 记录方式，至少能记录成功进入内核或失败停留阶段
+
+- [ ] Task 14: 将启动介质验证纳入统一验收基线
+  - [ ] SubTask 14.1: 扩展当前验证文档，覆盖 `QEMU + OVMF`、后续真机 U 盘启动和各自的验收口径
+  - [ ] SubTask 14.2: 为镜像产物、启动方式、支持边界和排障入口补充复验清单
+  - [ ] SubTask 14.3: 保证后续每次迭代都能区分“`QEMU + OVMF` 可跑”“其它虚拟机已验证”“真机 U 盘可跑”这三类状态，而不是混成一句“能启动”
+
 # Task Dependencies
 - [Task 2] depends on [Task 1]
 - [Task 3] depends on [Task 2]
@@ -60,3 +80,7 @@
 - [Task 8] depends on [Task 2], [Task 5], [Task 6], and [Task 7]
 - [Task 9] depends on [Task 6] and [Task 8]
 - [Task 10] depends on [Task 8] and [Task 9]
+- [Task 11] depends on [Task 2] and [Task 10]
+- [Task 12] depends on [Task 11]
+- [Task 13] depends on [Task 11]
+- [Task 14] depends on [Task 12] and [Task 13]
