@@ -14,11 +14,11 @@ baseline. The project should now have:
 
 | Stage | Minimum visible outcome | Primary evidence | Validation method |
 | --- | --- | --- | --- |
-| `Task1` | Repository scope is locked to `x86_64 + QEMU` and the core directories exist | `README.md`, `docs/release-0-scope.md`, `boot/`, `arch/`, `platform/`, `src/` | Review the scope doc and repository layout |
-| `Task2` | A bootable `x86_64` image is produced and QEMU reaches the kernel entry | `build/x86_64/tinyos-x86_64.img`, serial boot log | Run `./scripts/build_x86_64.sh` and boot QEMU |
+| `Task1` | Repository scope is locked to `x86_64 + QEMU/OVMF` and the core directories exist | `README.md`, `docs/release-0-scope.md`, `boot/`, `arch/`, `platform/`, `src/` | Review the scope doc and repository layout |
+| `Task2` | A bootable `x86_64 UEFI` image is produced and `QEMU + OVMF` reaches the kernel entry | `build/x86_64/tinyos-x86_64.img`, serial log, `debugcon` log | Run `./scripts/build_x86_64.sh` and boot QEMU |
 | `Task3` | The kernel allocator, arch interrupt backend and event loop reach a live heartbeat | `Early heap`, `Interrupts`, `[event] heartbeat=` log lines | Check the serial log for allocator, interrupt readiness and heartbeat output |
 | `Task4` | Display and input are attached through generic interfaces instead of direct kernel wiring | `Display:` and `Input:` log lines, keyboard event logs | Confirm the boot log advertises backend binding and observe `[input]` lines after key presses |
-| `Task5` | The text-mode GUI MVP owns the screen and keeps updating from the event loop | `[gui] Task5 MVP active.` log line and VGA text screen | Confirm GUI activation in serial and visually inspect the screen in QEMU |
+| `Task5` | The framebuffer demo owns the screen and presents a visible `UEFI` boot page | `LPVEABCDKUS` marker sequence and the `TINYOS / UEFI BOOT` screen | Confirm the marker sequence and visually inspect the screen in QEMU |
 | `Task6` | `ARM64` and `RISC-V` migration boundaries are documented around `boot/`, `arch/` and `platform/` | `docs/porting/task6-arch-platform-boundary.md`, placeholder port directories | Review the porting document and ensure the placeholder directories remain reserved |
 | `Task7` | The MCU subset is constrained to a shared-kernel, single-board roadmap | `docs/porting/task7-mcu-subset-roadmap.md` | Review the roadmap for shared abstractions, exclusions and the fixed reference board |
 | `Task8` | Validation expectations are explicit and re-runnable | this document and `scripts/check_task8_baseline.sh` | Run the script and review the summary |
@@ -27,31 +27,26 @@ baseline. The project should now have:
 
 ### Boot
 
-- Automated evidence: `tinyOS x86_64 bootstrap ready.`
-- Pass condition: the headless QEMU serial log reaches the kernel banner
+- Automated evidence: `tinyOS UEFI loader starting...` plus `LPVEABCDKUS`
+- Pass condition: the headless `QEMU + OVMF` logs reach the loader banner and the full handoff marker sequence
 
 ### Display
 
-- Automated evidence: `Display: platform-agnostic interface -> x86_64 VGA text backend + positioned draw ops.`
-- Manual evidence: the QEMU VGA window shows the text-mode GUI page instead of
-  only boot logs
-- Pass condition: the serial log proves backend binding and the screen is
-  visibly owned by the GUI
+- Automated evidence: the `debugcon` log reaches `...KUS`, proving the kernel entered the `UEFI` demo path
+- Manual evidence: the window shows the blue panel with `TINYOS` and `UEFI BOOT`
+- Pass condition: the `UEFI` demo path executes and the GOP framebuffer is visibly owned by the demo screen
 
 ### Input
 
-- Automated evidence: `Input: platform-agnostic interface -> x86_64 PS/2 keyboard backend.`
-- Manual evidence: press `Tab`, `Enter`, printable keys and `Backspace`, then
-  observe serial `[input]` lines and visible GUI changes
-- Pass condition: the backend is registered, input events are logged and the
-  GUI reacts to focus or text changes
+- Automated evidence: none in the current `UEFI` demo path; input remains part of the retained text-mode path
+- Manual evidence: not required for the current `UEFI-first` acceptance slice
+- Pass condition: this row is informational only until the full interactive GUI path is moved onto the `UEFI` framebuffer route
 
 ### GUI
 
-- Automated evidence: `[gui] Task5 MVP active. Screen owned by GUI, logs continue on serial.`
-- Manual evidence: the screen shows a header, page state and editable demo
-  input
-- Pass condition: the GUI stays active while heartbeat logs continue on serial
+- Automated evidence: `LPVEABCDKUS`
+- Manual evidence: the screen shows the expected `TINYOS / UEFI BOOT` framebuffer panel
+- Pass condition: the demo remains stable on screen after the kernel handoff
 
 ### Cross-Architecture Portability
 
@@ -88,10 +83,9 @@ make check-baseline
 The script automates the following:
 
 1. checks that the Task6, Task7 and Task8 validation documents exist
-2. builds the bootable `x86_64` image
-3. boots QEMU in headless mode and captures serial output
-4. verifies the expected boot, allocator, arch interrupt, event loop and GUI log
-   markers
+2. builds the bootable `x86_64 UEFI` image
+3. boots `QEMU + OVMF` in headless mode and captures serial output
+4. verifies the expected loader, handoff and framebuffer-demo markers
 5. checks that the `ARM64`, `RISC-V` and MCU roadmap placeholders remain in the
    repository
 
@@ -99,12 +93,10 @@ The script automates the following:
 
 Use `make run` for the screen-visible demo and perform this quick check:
 
-1. wait for the GUI screen to replace the boot log on VGA
-2. press `Tab` to switch focus between controls
-3. press `Enter` on the page toggle control
-4. type `abc`, then `Backspace`, inside the editable field
-5. confirm serial logs show heartbeat and input activity while the GUI remains
-   responsive
+1. wait for the `UEFI` demo screen to appear
+2. confirm the top band and center panel are visible
+3. confirm the text reads `TINYOS` and `UEFI BOOT`
+4. confirm the serial / `debugcon` evidence matches the current expected handoff sequence
 
 ## Acceptance Result
 

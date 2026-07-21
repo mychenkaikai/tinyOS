@@ -4,19 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_SCRIPT="${ROOT_DIR}/scripts/build_x86_64.sh"
 IMAGE_BIN="${ROOT_DIR}/build/x86_64/tinyos-x86_64.img"
+OVMF_CODE="/usr/share/OVMF/OVMF_CODE_4M.fd"
+OVMF_VARS_TEMPLATE="/usr/share/OVMF/OVMF_VARS_4M.fd"
+OVMF_VARS="${ROOT_DIR}/build/x86_64/OVMF_VARS_4M.fd"
 VALIDATION_DOC="${ROOT_DIR}/docs/validation/task8-validation-baseline.md"
 TASK6_DOC="${ROOT_DIR}/docs/porting/task6-arch-platform-boundary.md"
 TASK7_DOC="${ROOT_DIR}/docs/porting/task7-mcu-subset-roadmap.md"
 
-TMP_DIR="$(mktemp -d)"
-LOG_FILE="${TMP_DIR}/qemu-serial.log"
+TMP_DIR="${ROOT_DIR}/build/tmp/check-baseline"
+SERIAL_LOG_FILE="${TMP_DIR}/qemu-serial.log"
+DEBUGCON_LOG_FILE="${TMP_DIR}/qemu-debugcon.log"
 
 PASS_COUNT=0
-
-cleanup() {
-    rm -rf "${TMP_DIR}"
-}
-trap cleanup EXIT
 
 pass() {
     PASS_COUNT=$((PASS_COUNT + 1))
@@ -42,12 +41,13 @@ require_file() {
 require_log_line() {
     local pattern="$1"
     local description="$2"
+    local log_file="$3"
 
-    if grep -Eq "${pattern}" "${LOG_FILE}"; then
+    if grep -Eq "${pattern}" "${log_file}"; then
         pass "${description}"
     else
-        printf 'Captured serial log:\n' >&2
-        sed -n '1,160p' "${LOG_FILE}" >&2 || true
+        printf 'Captured log (%s):\n' "${log_file}" >&2
+        sed -n '1,160p' "${log_file}" >&2 || true
         fail "${description}: pattern not found: ${pattern}"
     fi
 }
@@ -77,11 +77,28 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1; then
     fail "qemu-system-x86_64 is required for the Task8 runtime baseline check"
 fi
 
+if [[ ! -f "${OVMF_CODE}" || ! -f "${OVMF_VARS_TEMPLATE}" ]]; then
+    fail "OVMF firmware files are required for the Task8 runtime baseline check"
+fi
+
+mkdir -p "${TMP_DIR}"
+: > "${SERIAL_LOG_FILE}"
+: > "${DEBUGCON_LOG_FILE}"
+
+if [[ ! -f "${OVMF_VARS}" ]]; then
+    cp "${OVMF_VARS_TEMPLATE}" "${OVMF_VARS}"
+fi
+
 printf 'Booting QEMU headless and capturing serial log...\n'
 set +e
 timeout -k 2s 8s qemu-system-x86_64 \
+    -machine q35 \
+    -drive if=pflash,format=raw,readonly=on,file="${OVMF_CODE}" \
+    -drive if=pflash,format=raw,file="${OVMF_VARS}" \
     -drive format=raw,file="${IMAGE_BIN}" \
-    -serial "file:${LOG_FILE}" \
+    -serial "file:${SERIAL_LOG_FILE}" \
+    -debugcon "file:${DEBUGCON_LOG_FILE}" \
+    -global isa-debugcon.iobase=0x402 \
     -display none \
     -monitor none \
     -no-reboot \
@@ -91,21 +108,13 @@ QEMU_STATUS=$?
 set -e
 
 if [[ "${QEMU_STATUS}" -ne 0 && "${QEMU_STATUS}" -ne 124 ]]; then
-    sed -n '1,160p' "${LOG_FILE}" >&2 || true
+    sed -n '1,160p' "${SERIAL_LOG_FILE}" >&2 || true
     fail "QEMU exited unexpectedly with status ${QEMU_STATUS}"
 fi
 
 pass "QEMU reached the runtime capture window"
 
-require_log_line 'tinyOS x86_64 bootstrap ready\.' "Kernel banner reached"
-require_log_line 'Phase: Task5 text-mode GUI MVP ready\.' "Task5 phase banner reached"
-require_log_line 'Platform: x86_64-qemu' "Platform binding reported"
-require_log_line 'Display: platform-agnostic interface -> x86_64 VGA text backend \+ positioned draw ops\.' "Display backend reported"
-require_log_line 'Input: platform-agnostic interface -> x86_64 PS/2 keyboard backend\.' "Input backend reported"
-require_log_line 'Early heap: start=0x[0-9A-F]+' "Early heap initialization reported"
-require_log_line 'Interrupts: arch backend ready=yes' "Interrupt backend ready"
-require_log_line '\[gui\] Task5 MVP active\. Screen owned by GUI, logs continue on serial\.' "GUI ownership reported"
-require_log_line 'Event loop: heartbeat, input and gui tasks armed, enabling interrupts\.' "Event loop arming reported"
-require_log_line '\[event\] heartbeat=[0-9]+ ticks=[0-9]+ heap_used=[0-9]+' "Heartbeat log observed"
+require_log_line 'tinyOS UEFI loader starting\.\.\.' "UEFI loader banner reached" "${SERIAL_LOG_FILE}"
+require_log_line 'LPVEABCDKUS' "UEFI loader, kernel handoff and framebuffer demo markers observed" "${DEBUGCON_LOG_FILE}"
 
 printf '== Task8 baseline check passed: %d checks ==\n' "${PASS_COUNT}"
