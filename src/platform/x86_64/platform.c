@@ -7,7 +7,7 @@ const struct input_backend *x86_64_keyboard_backend(void);
 const struct display_backend *x86_64_text_display_backend(void);
 
 static uint64_t x86_64_qemu_boot_heap_limit(void) {
-    return 0x200000u;
+    return 0x800000u;
 }
 
 static struct tinyos_platform_ops g_x86_64_qemu_platform = {

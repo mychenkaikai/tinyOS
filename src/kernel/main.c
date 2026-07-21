@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "tinyos/arch.h"
+#include "tinyos/boot_info.h"
 #include "tinyos/console.h"
 #include "tinyos/display.h"
 #include "tinyos/event_loop.h"
@@ -9,6 +10,7 @@
 #include "tinyos/input.h"
 #include "tinyos/memory.h"
 #include "tinyos/platform.h"
+#include "tinyos/uefi_boot_demo.h"
 
 #define HEARTBEAT_PERIOD_TICKS 100u
 #define INPUT_POLL_PERIOD_TICKS 2u
@@ -54,6 +56,18 @@ static void halt_forever(void) {
         }
     }
 }
+
+static void spin_forever(void) {
+    for (;;) {
+        __asm__ volatile ("pause");
+    }
+}
+
+// #region debug-point B:kernel-main-entry
+static void debugcon_write(char marker) {
+    __asm__ volatile ("outb %0, %1" : : "a"(marker), "Nd"((uint16_t)0x402));
+}
+// #endregion
 
 static bool is_printable_ascii(char ch) {
     return (ch >= 32) && (ch <= 126);
@@ -112,6 +126,18 @@ static void write_key_label(char ch) {
     console_write("none");
 }
 
+static const char *boot_method_name(uint32_t boot_method) {
+    if (boot_method == TINYOS_BOOT_METHOD_UEFI) {
+        return "uefi";
+    }
+
+    if (boot_method == TINYOS_BOOT_METHOD_BIOS) {
+        return "bios";
+    }
+
+    return "unknown";
+}
+
 static void input_task(void *context) {
     struct input_context *state = (struct input_context *)context;
     struct input_event event;
@@ -133,7 +159,7 @@ static void input_task(void *context) {
     }
 }
 
-void kernel_main(void) {
+void kernel_main(const struct tinyos_boot_info *boot_info) {
     struct event_task *heartbeat;
     struct heartbeat_context *heartbeat_state;
     struct event_task *input_poller;
@@ -141,6 +167,16 @@ void kernel_main(void) {
     struct event_task *gui_renderer;
     const struct tinyos_arch_ops *arch = current_arch();
     const struct tinyos_platform_ops *platform = tinyos_platform_current();
+
+    debugcon_write('K');
+    if (boot_info != (void *)0) {
+        if (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI) {
+            debugcon_write('U');
+            (void)tinyos_uefi_boot_demo_run(boot_info);
+        }
+        debugcon_write('S');
+        spin_forever();
+    }
 
     if ((arch != (void *)0) && (arch->early_init != (void *)0)) {
         arch->early_init();
@@ -152,7 +188,10 @@ void kernel_main(void) {
     input_init();
     console_write_line("tinyOS x86_64 bootstrap ready.");
     console_write_line("Phase: Task5 text-mode GUI MVP ready.");
-    console_write_line("Boot path: BIOS -> stage2 -> long mode -> kernel_main.");
+    console_write("Boot method: ");
+    console_write_line((boot_info != (void *)0) ? boot_method_name(boot_info->boot_method) : "unknown");
+    console_write("Boot path: ");
+    console_write_line(((boot_info != (void *)0) && (boot_info->boot_path[0] != '\0')) ? boot_info->boot_path : "unknown");
     console_write("Platform: ");
     console_write_line((platform != (void *)0) ? platform->name : "unknown");
     console_write_line("Display: platform-agnostic interface -> x86_64 VGA text backend + positioned draw ops.");
