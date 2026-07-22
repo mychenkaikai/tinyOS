@@ -51,7 +51,8 @@ boundaries, and a GOP framebuffer demo path:
 |   |   `-- task6-arch-platform-boundary.md
 |   |-- release-0-scope.md
 |   `-- validation/
-|       `-- task8-validation-baseline.md
+|       |-- task8-validation-baseline.md
+|       `-- x86_64-uefi-real-hardware-smoke-test.md
 |-- include/
 |   `-- tinyos/
 |       |-- arch.h
@@ -125,4 +126,12 @@ Current visual outcome on the framebuffer:
 
 - Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`
 - Not yet claimed: `legacy BIOS`, `VirtualBox`, `VMware`, real hardware success
-- Next hardware step: follow [x86_64-uefi-real-hardware.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-real-hardware.md) to prepare a USB image and record a smoke test result
+- Next hardware step: follow `docs/boot/x86_64-uefi-real-hardware.md` to prepare a USB image and append the result to `docs/validation/x86_64-uefi-real-hardware-smoke-test.md`
+
+## Validation Status Tiers
+
+- `QEMU + OVMF`: validated through `make check-baseline`
+- Other virtual machine products: not verified unless a product-specific result is checked in
+- Real-hardware `UEFI` USB boot: not verified until `docs/validation/x86_64-uefi-real-hardware-smoke-test.md` contains a recorded machine attempt
+
+Do not compress these into a single claim such as "the image boots".

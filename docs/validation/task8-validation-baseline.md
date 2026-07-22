@@ -9,6 +9,8 @@ baseline. The project should now have:
 - a concrete validation method for boot, display, input, GUI and portability
 - a repeatable script entry that re-checks the baseline without relying on
   verbal confirmation
+- a clear separation between the validated `QEMU + OVMF` path and the pending
+  real-hardware `UEFI` USB path
 
 ## Stage Outcomes
 
@@ -23,18 +25,32 @@ baseline. The project should now have:
 | `Task7` | The MCU subset is constrained to a shared-kernel, single-board roadmap | `docs/porting/task7-mcu-subset-roadmap.md` | Review the roadmap for shared abstractions, exclusions and the fixed reference board |
 | `Task8` | Validation expectations are explicit and re-runnable | this document and `scripts/check_task8_baseline.sh` | Run the script and review the summary |
 
+## Validation State Tiers
+
+- `QEMU + OVMF validated`
+  - backed by `scripts/check_task8_baseline.sh` and the framebuffer demo
+- `other virtual machine products verified`
+  - only claim this after a product-specific result is checked in
+- `real-hardware UEFI USB verified`
+  - only claim this after a machine attempt is recorded in
+    `docs/validation/x86_64-uefi-real-hardware-smoke-test.md`
+
+Do not collapse these tiers into a single claim such as "the image boots".
+
 ## Validation Matrix
 
 ### Boot
 
 - Automated evidence: `tinyOS UEFI loader starting...` plus `LPVEABCDKUS`
 - Pass condition: the headless `QEMU + OVMF` logs reach the loader banner and the full handoff marker sequence
+- Real-hardware evidence: a filled attempt entry in `docs/validation/x86_64-uefi-real-hardware-smoke-test.md`
 
 ### Display
 
 - Automated evidence: the `debugcon` log reaches `...KUS`, proving the kernel entered the `UEFI` demo path
 - Manual evidence: the window shows the blue panel with `TINYOS` and `UEFI BOOT`
 - Pass condition: the `UEFI` demo path executes and the GOP framebuffer is visibly owned by the demo screen
+- Real-hardware evidence: a photo or observer note showing the same `TINYOS / UEFI BOOT` screen on a target machine
 
 ### Input
 
@@ -47,6 +63,7 @@ baseline. The project should now have:
 - Automated evidence: `LPVEABCDKUS`
 - Manual evidence: the screen shows the expected `TINYOS / UEFI BOOT` framebuffer panel
 - Pass condition: the demo remains stable on screen after the kernel handoff
+- Real-hardware evidence: the attempt log records whether the framebuffer demo appeared cleanly or stopped earlier
 
 ### Cross-Architecture Portability
 
@@ -67,6 +84,29 @@ baseline. The project should now have:
   user mode and SMP
 - Pass condition: the MCU work stays a constrained subset instead of a forked
   OS plan
+
+## Real-Hardware Preparation And Record
+
+Prepare the real-hardware path with:
+
+```text
+docs/boot/x86_64-uefi-real-hardware.md
+```
+
+Record the outcome in:
+
+```text
+docs/validation/x86_64-uefi-real-hardware-smoke-test.md
+```
+
+The minimum checked-in real-hardware record must capture:
+
+1. the machine and firmware that were used
+2. the image commit and the USB write command
+3. whether firmware listed the USB device and started `BOOTX64.EFI`
+4. whether the `TINYOS / UEFI BOOT` screen appeared
+5. the failure bucket or success summary
+6. a durable photo or log reference
 
 ## Repeatable Check Entry
 
@@ -98,6 +138,15 @@ Use `make run` for the screen-visible demo and perform this quick check:
 3. confirm the text reads `TINYOS` and `UEFI BOOT`
 4. confirm the serial / `debugcon` evidence matches the current expected handoff sequence
 
+For the first real-hardware attempt, also:
+
+1. write `build/x86_64/tinyos-x86_64.img` to a USB device by following
+   `docs/boot/x86_64-uefi-real-hardware.md`
+2. select the USB device as a `UEFI` boot target on a real `x86_64` machine
+3. classify the result with the documented failure buckets
+4. append the result to
+   `docs/validation/x86_64-uefi-real-hardware-smoke-test.md`
+
 ## Acceptance Result
 
 Task8 is complete when:
@@ -108,3 +157,5 @@ Task8 is complete when:
 3. `scripts/check_task8_baseline.sh` passes on a prepared development machine
 4. future iterations can re-run the same script and manual checklist instead of
    relying on oral status reports
+5. repository status statements distinguish `QEMU + OVMF`, other virtual
+   machines and real-hardware `UEFI` results instead of merging them together
