@@ -46,12 +46,17 @@ boundaries, and a GOP framebuffer demo path:
 |       `-- stage2.S
 |-- docs/
 |   |-- boot/
+|   |   |-- x86_64-uefi-virtualbox.md
 |   |   `-- x86_64-uefi-real-hardware.md
 |   |-- porting/
 |   |   `-- task6-arch-platform-boundary.md
 |   |-- release-0-scope.md
 |   `-- validation/
-|       `-- task8-validation-baseline.md
+|       |-- task8-validation-baseline.md
+|       |-- x86_64-uefi-boot-status.md
+|       |-- x86_64-uefi-hardware-smoke-template.md
+|       |-- x86_64-uefi-virtualbox-2026-07-23.md
+|       `-- x86_64-uefi-virtualbox-smoke-template.md
 |-- include/
 |   `-- tinyos/
 |       |-- arch.h
@@ -72,7 +77,10 @@ boundaries, and a GOP framebuffer demo path:
 |   `-- x86_64_qemu/
 |       `-- README.md
 |-- scripts/
+|   |-- check_uefi_image_layout.py
+|   |-- build_virtualbox_disk.sh
 |   |-- check_task8_baseline.sh
+|   |-- check_virtualbox_disk.sh
 |   |-- build_uefi_disk.py
 |   |-- build_x86_64.sh
 |   `-- run_qemu_x86_64.sh
@@ -108,6 +116,28 @@ Run under `QEMU + OVMF`:
 make run
 ```
 
+Verify the raw image layout before writing USB media:
+
+```bash
+make check-image
+```
+
+This checks the `MBR`, `ESP/FAT16`, mirrored FAT tables, directory entries, and
+verifies that the packed `BOOTX64.EFI` and `KERNEL.BIN` match the build
+artifacts byte-for-byte.
+
+Prepare a `VirtualBox` disk image:
+
+```bash
+make build-vbox
+```
+
+Check the converted `VDI`:
+
+```bash
+make check-vbox
+```
+
 Expected runtime evidence:
 
 ```text
@@ -123,6 +153,9 @@ Current visual outcome on the framebuffer:
 
 ## Current Boundary
 
-- Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`
-- Not yet claimed: `legacy BIOS`, `VirtualBox`, `VMware`, real hardware success
-- Next hardware step: follow [x86_64-uefi-real-hardware.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-real-hardware.md) to prepare a USB image and record a smoke test result
+- Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`, `VirtualBox UEFI`
+- Prepared but not yet verified: real-hardware USB boot flow
+- Not yet claimed: `legacy BIOS`, `VMware`, `Hyper-V`, real hardware success
+- Boot status source of truth: [x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md)
+- VirtualBox bring-up guide: [x86_64-uefi-virtualbox.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-virtualbox.md)
+- Next hardware step: follow [x86_64-uefi-real-hardware.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-real-hardware.md) and fill [x86_64-uefi-hardware-smoke-template.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-hardware-smoke-template.md)

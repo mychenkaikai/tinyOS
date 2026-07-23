@@ -3,7 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_SCRIPT="${ROOT_DIR}/scripts/build_x86_64.sh"
+IMAGE_LAYOUT_CHECK="${ROOT_DIR}/scripts/check_uefi_image_layout.py"
 IMAGE_BIN="${ROOT_DIR}/build/x86_64/tinyos-x86_64.img"
+EFI_LOADER="${ROOT_DIR}/build/x86_64/esp/EFI/BOOT/BOOTX64.EFI"
+KERNEL_BIN="${ROOT_DIR}/build/x86_64/KERNEL.BIN"
 OVMF_CODE="/usr/share/OVMF/OVMF_CODE_4M.fd"
 OVMF_VARS_TEMPLATE="/usr/share/OVMF/OVMF_VARS_4M.fd"
 OVMF_VARS="${ROOT_DIR}/build/x86_64/OVMF_VARS_4M.fd"
@@ -57,6 +60,7 @@ printf '== Task8 baseline check ==\n'
 require_file "${TASK6_DOC}" "Task6 porting boundary document present"
 require_file "${TASK7_DOC}" "Task7 MCU roadmap document present"
 require_file "${VALIDATION_DOC}" "Task8 validation baseline document present"
+require_file "${IMAGE_LAYOUT_CHECK}" "UEFI image layout check script present"
 require_file "${ROOT_DIR}/arch/aarch64/README.md" "ARM64 architecture placeholder present"
 require_file "${ROOT_DIR}/arch/riscv64/README.md" "RISC-V architecture placeholder present"
 require_file "${ROOT_DIR}/platform/aarch64_virt/README.md" "ARM64 platform placeholder present"
@@ -72,6 +76,10 @@ printf 'Building x86_64 image...\n'
 "${BUILD_SCRIPT}"
 
 require_file "${IMAGE_BIN}" "Bootable x86_64 image produced"
+
+printf 'Checking raw image layout...\n'
+python3 "${IMAGE_LAYOUT_CHECK}" "${IMAGE_BIN}" "${EFI_LOADER}" "${KERNEL_BIN}" > /dev/null
+pass "Raw image layout matches UEFI removable-media expectations"
 
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1; then
     fail "qemu-system-x86_64 is required for the Task8 runtime baseline check"

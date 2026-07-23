@@ -77,6 +77,21 @@ Optional but useful:
 make build
 ```
 
+1.5. Verify the raw image layout before writing the USB device:
+
+```bash
+make check-image
+```
+
+This checks the raw disk image for:
+
+- an `MBR` with an `0xEF` EFI System Partition entry
+- a valid `FAT16` ESP boot sector
+- matching primary and secondary `FAT` copies
+- `EFI` and `KERNEL.BIN` in the ESP root
+- `EFI/BOOT/BOOTX64.EFI` and `EFI/BOOT/KERNEL.BIN`
+- byte-for-byte matches between the packed image files and the current build artifacts
+
 2. Identify the USB device:
 
 ```bash
@@ -123,7 +138,11 @@ This should match the validated `QEMU + OVMF` screen outcome.
 
 ## Minimal Smoke-Test Record
 
-Record each real-hardware attempt with this template:
+Record each real-hardware attempt with the checked-in template:
+
+- [x86_64-uefi-hardware-smoke-template.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-hardware-smoke-template.md)
+
+Template contents:
 
 ```text
 Date:

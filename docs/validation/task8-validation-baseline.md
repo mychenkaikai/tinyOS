@@ -10,6 +10,13 @@ baseline. The project should now have:
 - a repeatable script entry that re-checks the baseline without relying on
   verbal confirmation
 
+Boot-media status beyond `QEMU + OVMF` is tracked separately in
+[x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md).
+The first verified non-`QEMU` path is `VirtualBox UEFI`, tracked in
+[x86_64-uefi-virtualbox.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-virtualbox.md)
+with a concrete record in
+[x86_64-uefi-virtualbox-2026-07-23.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-virtualbox-2026-07-23.md).
+
 ## Stage Outcomes
 
 | Stage | Minimum visible outcome | Primary evidence | Validation method |
@@ -89,6 +96,17 @@ The script automates the following:
 5. checks that the `ARM64`, `RISC-V` and MCU roadmap placeholders remain in the
    repository
 
+For pre-hardware media inspection, run:
+
+```bash
+make check-image
+```
+
+This verifies that the raw image still contains the expected `MBR -> ESP ->
+EFI/BOOT/BOOTX64.EFI + KERNEL.BIN` layout, that the two `FAT` copies match,
+and that the packed files match the current build artifacts before any USB
+write step.
+
 ## Manual Demo Steps
 
 Use `make run` for the screen-visible demo and perform this quick check:
@@ -97,6 +115,17 @@ Use `make run` for the screen-visible demo and perform this quick check:
 2. confirm the top band and center panel are visible
 3. confirm the text reads `TINYOS` and `UEFI BOOT`
 4. confirm the serial / `debugcon` evidence matches the current expected handoff sequence
+
+## Boot-Media Status Discipline
+
+When reporting boot support, keep these three statements separate:
+
+1. `QEMU + OVMF` verified
+2. other virtual machines verified, prepared or unverified
+3. real-hardware USB path prepared or verified
+
+Use [x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md)
+as the source of truth instead of summarizing all boot targets as one status.
 
 ## Acceptance Result
 
