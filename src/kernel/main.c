@@ -57,12 +57,6 @@ static void halt_forever(void) {
     }
 }
 
-static void spin_forever(void) {
-    for (;;) {
-        __asm__ volatile ("pause");
-    }
-}
-
 // #region debug-point B:kernel-main-entry
 static void debugcon_write(char marker) {
     __asm__ volatile ("outb %0, %1" : : "a"(marker), "Nd"((uint16_t)0x402));
@@ -143,12 +137,16 @@ static void input_task(void *context) {
     struct input_event event;
 
     while (input_pop_event(&event)) {
-        if ((event.type != INPUT_EVENT_KEY) || !event.pressed) {
+        if (event.type != INPUT_EVENT_KEY) {
+            continue;
+        }
+
+        gui_handle_input_event(&event);
+        if (!event.pressed) {
             continue;
         }
 
         ++state->events_seen;
-        gui_handle_input_event(&event);
         console_write("[input] key#=");
         console_write_u64(state->events_seen);
         console_write(" scancode=");
@@ -172,30 +170,44 @@ void kernel_main(const struct tinyos_boot_info *boot_info) {
     if (boot_info != (void *)0) {
         if (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI) {
             debugcon_write('U');
+            debugcon_write('S');
             (void)tinyos_uefi_boot_demo_run(boot_info);
         }
-        debugcon_write('S');
-        spin_forever();
     }
 
     if ((arch != (void *)0) && (arch->early_init != (void *)0)) {
         arch->early_init();
     }
 
+    platform_set_boot_info(boot_info);
     platform_init();
     console_init();
+    if ((boot_info != (void *)0) && (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI)) {
+        console_set_display_mirror(false);
+    }
     display_init();
     input_init();
     console_write_line("tinyOS x86_64 bootstrap ready.");
-    console_write_line("Phase: Task5 text-mode GUI MVP ready.");
+    if ((boot_info != (void *)0) && (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI) &&
+        boot_info->framebuffer.available && (boot_info->framebuffer.base != 0u)) {
+        console_write_line("Phase: UEFI framebuffer GUI runtime ready.");
+    } else {
+        console_write_line("Phase: Task5 text-mode GUI MVP ready.");
+    }
     console_write("Boot method: ");
     console_write_line((boot_info != (void *)0) ? boot_method_name(boot_info->boot_method) : "unknown");
     console_write("Boot path: ");
     console_write_line(((boot_info != (void *)0) && (boot_info->boot_path[0] != '\0')) ? boot_info->boot_path : "unknown");
     console_write("Platform: ");
     console_write_line((platform != (void *)0) ? platform->name : "unknown");
-    console_write_line("Display: platform-agnostic interface -> x86_64 VGA text backend + positioned draw ops.");
-    console_write_line("Input: platform-agnostic interface -> x86_64 PS/2 keyboard backend.");
+    if ((boot_info != (void *)0) && (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI) &&
+        boot_info->framebuffer.available && (boot_info->framebuffer.base != 0u)) {
+        console_write_line("Display: UEFI GOP framebuffer runtime owned by the GUI renderer.");
+        console_write_line("Input: x86_64 PS/2 keyboard backend routed into the framebuffer GUI.");
+    } else {
+        console_write_line("Display: platform-agnostic interface -> x86_64 VGA text backend + positioned draw ops.");
+        console_write_line("Input: platform-agnostic interface -> x86_64 PS/2 keyboard backend.");
+    }
 
     memory_init(((platform != (void *)0) && (platform->boot_heap_limit != (void *)0)) ? platform->boot_heap_limit() : 0x200000u);
     console_write("Early heap: start=");
@@ -230,7 +242,7 @@ void kernel_main(const struct tinyos_boot_info *boot_info) {
     }
 
     gui_renderer = (struct event_task *)must_alloc(sizeof(*gui_renderer), 16u, "gui task");
-    gui_init();
+    gui_init(boot_info);
     console_set_display_mirror(false);
     gui_render();
 
@@ -239,7 +251,12 @@ void kernel_main(const struct tinyos_boot_info *boot_info) {
         halt_forever();
     }
 
-    console_write_line("[gui] Task5 MVP active. Screen owned by GUI, logs continue on serial.");
+    if ((boot_info != (void *)0) && (boot_info->boot_method == TINYOS_BOOT_METHOD_UEFI) &&
+        boot_info->framebuffer.available && (boot_info->framebuffer.base != 0u)) {
+        console_write_line("[gui] UEFI framebuffer GUI active. Screen owned by GUI, logs continue on serial.");
+    } else {
+        console_write_line("[gui] Task5 MVP active. Screen owned by GUI, logs continue on serial.");
+    }
     console_write_line("Event loop: heartbeat, input and gui tasks armed, enabling interrupts.");
     if ((arch != (void *)0) && (arch->interrupts_enable != (void *)0)) {
         arch->interrupts_enable();

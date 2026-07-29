@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "tinyos/boot_info.h"
 #include "tinyos/display.h"
 #include "tinyos/input.h"
 
@@ -21,6 +22,7 @@ struct tinyos_platform_ops {
 };
 
 const struct tinyos_platform_ops *tinyos_platform_current(void);
+void platform_set_boot_info(const struct tinyos_boot_info *boot_info);
 void platform_init(void);
 
 #endif

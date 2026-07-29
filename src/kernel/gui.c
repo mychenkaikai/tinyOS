@@ -6,6 +6,7 @@
 
 #include "tinyos/arch.h"
 #include "tinyos/display.h"
+#include "tinyos/gui_uefi.h"
 
 #define GUI_INPUT_CAPACITY 32u
 #define GUI_LAST_KEY_CAPACITY 24u
@@ -56,6 +57,7 @@ static struct gui_state g_gui = {
     .input_buffer = {0},
     .input_length = 0u
 };
+static bool g_gui_use_uefi = false;
 
 static uint64_t current_ticks(void) {
     const struct tinyos_arch_ops *arch = tinyos_arch_current();
@@ -393,10 +395,17 @@ static void render_settings_page(uint32_t top, uint32_t height) {
     draw_text(top + 3u, 2u, "Console logs stay on serial while the screen is owned by the GUI.");
 }
 
-void gui_init(void) {
+void gui_init(const struct tinyos_boot_info *boot_info) {
     uint32_t width = 0u;
     uint32_t height = 0u;
 
+    if (tinyos_uefi_gui_supported(boot_info)) {
+        g_gui_use_uefi = true;
+        tinyos_uefi_gui_init(boot_info);
+        return;
+    }
+
+    g_gui_use_uefi = false;
     g_gui.ready = display_dimensions(&width, &height);
     if (!g_gui.ready) {
         return;
@@ -408,10 +417,20 @@ void gui_init(void) {
 }
 
 void gui_note_heartbeat(void) {
+    if (g_gui_use_uefi) {
+        tinyos_uefi_gui_note_heartbeat();
+        return;
+    }
+
     ++g_gui.heartbeat_runs;
 }
 
 void gui_handle_input_event(const struct input_event *event) {
+    if (g_gui_use_uefi) {
+        tinyos_uefi_gui_handle_input_event(event);
+        return;
+    }
+
     if ((event == NULL) || (event->type != INPUT_EVENT_KEY) || !event->pressed) {
         return;
     }
@@ -447,6 +466,11 @@ void gui_handle_input_event(const struct input_event *event) {
 void gui_render(void) {
     uint32_t content_top = 16u;
     uint32_t content_height;
+
+    if (g_gui_use_uefi) {
+        tinyos_uefi_gui_render();
+        return;
+    }
 
     if (!g_gui.ready) {
         return;

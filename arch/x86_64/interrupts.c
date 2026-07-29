@@ -6,7 +6,6 @@
 
 #define IDT_ENTRIES 256u
 #define IDT_FLAG_INTERRUPT_GATE 0x8Eu
-#define KERNEL_CODE_SELECTOR 0x18u
 #define PIC1_COMMAND 0x20u
 #define PIC1_DATA 0x21u
 #define PIC2_COMMAND 0xA0u
@@ -112,6 +111,14 @@ extern void x86_64_interrupt_stub_default(void);
 static struct idt_entry g_idt[IDT_ENTRIES];
 static volatile uint64_t g_timer_ticks = 0;
 static bool g_interrupts_ready = false;
+static uint16_t g_code_selector = 0u;
+
+static uint16_t current_code_selector(void) {
+    uint16_t selector;
+
+    __asm__ volatile ("mov %%cs, %0" : "=r"(selector));
+    return selector;
+}
 
 static void io_wait(void) {
     outb(0x80u, 0u);
@@ -121,7 +128,7 @@ static void set_idt_entry(uint8_t vector, void (*handler)(void)) {
     uint64_t address = (uint64_t)handler;
 
     g_idt[vector].offset_low = (uint16_t)(address & 0xFFFFu);
-    g_idt[vector].selector = KERNEL_CODE_SELECTOR;
+    g_idt[vector].selector = g_code_selector;
     g_idt[vector].ist = 0u;
     g_idt[vector].type_attributes = IDT_FLAG_INTERRUPT_GATE;
     g_idt[vector].offset_mid = (uint16_t)((address >> 16) & 0xFFFFu);
@@ -291,6 +298,7 @@ void x86_64_interrupt_dispatch(struct interrupt_frame *frame) {
 }
 
 void x86_64_interrupts_init(uint32_t tick_hz) {
+    g_code_selector = current_code_selector();
     install_idt_handlers();
     load_idt();
     pic_remap();

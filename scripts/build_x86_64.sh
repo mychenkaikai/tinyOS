@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT_DIR}/build/x86_64"
 EFI_PKG_DIR="${ROOT_DIR}/third_party/gnu-efi/x86_64"
+LVGL_DIR="${ROOT_DIR}/third_party/lvgl"
 EFI_DIR="${BUILD_DIR}/esp/EFI/BOOT"
 KERNEL_ELF="${BUILD_DIR}/kernel.elf"
 KERNEL_BIN="${BUILD_DIR}/kernel.bin"
@@ -27,7 +28,9 @@ C_SOURCES=(
     "${ROOT_DIR}/src/kernel/console.c"
     "${ROOT_DIR}/src/kernel/display.c"
     "${ROOT_DIR}/src/kernel/gui.c"
+    "${ROOT_DIR}/src/kernel/gui_uefi.c"
     "${ROOT_DIR}/src/kernel/input.c"
+    "${ROOT_DIR}/src/kernel/lvgl_port.c"
     "${ROOT_DIR}/src/kernel/memory.c"
     "${ROOT_DIR}/src/kernel/event_loop.c"
     "${ROOT_DIR}/src/kernel/main.c"
@@ -43,10 +46,79 @@ ASM_SOURCES=(
 )
 
 OBJECTS=()
+CFLAGS=(
+    -m64
+    -ffreestanding
+    -fno-pic
+    -fno-pie
+    -fno-stack-protector
+    -fcf-protection=none
+    -mno-red-zone
+    -Wall
+    -Wextra
+    -Werror
+    -I"${ROOT_DIR}/include"
+    -I"${LVGL_DIR}"
+    -I"${LVGL_DIR}/src"
+)
+LVGL_CFLAGS=(
+    "${CFLAGS[@]}"
+    -DLV_CONF_INCLUDE_SIMPLE
+    -Wno-unused-parameter
+)
+LVGL_SOURCE_DIRS=(
+    "${LVGL_DIR}/src/core"
+    "${LVGL_DIR}/src/display"
+    "${LVGL_DIR}/src/draw"
+    "${LVGL_DIR}/src/draw/sw"
+    "${LVGL_DIR}/src/draw/sw/blend"
+    "${LVGL_DIR}/src/indev"
+    "${LVGL_DIR}/src/layouts"
+    "${LVGL_DIR}/src/layouts/flex"
+    "${LVGL_DIR}/src/misc"
+    "${LVGL_DIR}/src/misc/cache"
+    "${LVGL_DIR}/src/libs/bin_decoder"
+    "${LVGL_DIR}/src/libs/rle"
+    "${LVGL_DIR}/src/stdlib"
+    "${LVGL_DIR}/src/stdlib/builtin"
+    "${LVGL_DIR}/src/tick"
+    "${LVGL_DIR}/src/widgets/button"
+    "${LVGL_DIR}/src/widgets/label"
+    "${LVGL_DIR}/src/widgets/textarea"
+)
+LVGL_SOURCES=(
+    "${LVGL_DIR}/src/lv_init.c"
+    "${LVGL_DIR}/src/font/lv_font.c"
+    "${LVGL_DIR}/src/font/lv_font_fmt_txt.c"
+    "${LVGL_DIR}/src/font/lv_font_montserrat_14.c"
+    "${LVGL_DIR}/src/font/lv_font_montserrat_18.c"
+    "${LVGL_DIR}/src/osal/lv_os.c"
+    "${LVGL_DIR}/src/osal/lv_os_none.c"
+    "${LVGL_DIR}/src/themes/lv_theme.c"
+)
 
 for source_file in "${C_SOURCES[@]}"; do
     object_file="${BUILD_DIR}/$(basename "${source_file%.*}").o"
-    gcc -m64 -ffreestanding -fno-pic -fno-pie -fno-stack-protector -fcf-protection=none -mno-red-zone -Wall -Wextra -Werror -I"${ROOT_DIR}/include" -c "${source_file}" -o "${object_file}"
+    gcc "${CFLAGS[@]}" -c "${source_file}" -o "${object_file}"
+    OBJECTS+=("${object_file}")
+done
+
+for source_dir in "${LVGL_SOURCE_DIRS[@]}"; do
+    while IFS= read -r source_file; do
+        case "$(basename "${source_file}")" in
+            lv_profiler_builtin.c)
+                continue
+                ;;
+        esac
+        LVGL_SOURCES+=("${source_file}")
+    done < <(find "${source_dir}" -maxdepth 1 -type f -name '*.c' | sort)
+done
+
+for source_file in "${LVGL_SOURCES[@]}"; do
+    relative_name="${source_file#${ROOT_DIR}/}"
+    object_file="${BUILD_DIR}/${relative_name//\//_}"
+    object_file="${object_file%.c}.o"
+    gcc "${LVGL_CFLAGS[@]}" -c "${source_file}" -o "${object_file}"
     OBJECTS+=("${object_file}")
 done
 

@@ -9,7 +9,6 @@ EFI_LOADER="${ROOT_DIR}/build/x86_64/esp/EFI/BOOT/BOOTX64.EFI"
 KERNEL_BIN="${ROOT_DIR}/build/x86_64/KERNEL.BIN"
 OVMF_CODE="/usr/share/OVMF/OVMF_CODE_4M.fd"
 OVMF_VARS_TEMPLATE="/usr/share/OVMF/OVMF_VARS_4M.fd"
-OVMF_VARS="${ROOT_DIR}/build/x86_64/OVMF_VARS_4M.fd"
 VALIDATION_DOC="${ROOT_DIR}/docs/validation/task8-validation-baseline.md"
 TASK6_DOC="${ROOT_DIR}/docs/porting/task6-arch-platform-boundary.md"
 TASK7_DOC="${ROOT_DIR}/docs/porting/task7-mcu-subset-roadmap.md"
@@ -17,6 +16,7 @@ TASK7_DOC="${ROOT_DIR}/docs/porting/task7-mcu-subset-roadmap.md"
 TMP_DIR="${ROOT_DIR}/build/tmp/check-baseline"
 SERIAL_LOG_FILE="${TMP_DIR}/qemu-serial.log"
 DEBUGCON_LOG_FILE="${TMP_DIR}/qemu-debugcon.log"
+OVMF_VARS="${TMP_DIR}/OVMF_VARS_4M.fd"
 
 PASS_COUNT=0
 
@@ -92,10 +92,7 @@ fi
 mkdir -p "${TMP_DIR}"
 : > "${SERIAL_LOG_FILE}"
 : > "${DEBUGCON_LOG_FILE}"
-
-if [[ ! -f "${OVMF_VARS}" ]]; then
-    cp "${OVMF_VARS_TEMPLATE}" "${OVMF_VARS}"
-fi
+cp "${OVMF_VARS_TEMPLATE}" "${OVMF_VARS}"
 
 printf 'Booting QEMU headless and capturing serial log...\n'
 set +e
@@ -123,6 +120,7 @@ fi
 pass "QEMU reached the runtime capture window"
 
 require_log_line 'tinyOS UEFI loader starting\.\.\.' "UEFI loader banner reached" "${SERIAL_LOG_FILE}"
+require_log_line '\[event\] heartbeat=' "Kernel event loop reached live heartbeat" "${SERIAL_LOG_FILE}"
 require_log_line 'LPVEABCDKUS' "UEFI loader, kernel handoff and framebuffer demo markers observed" "${DEBUGCON_LOG_FILE}"
 
 printf '== Task8 baseline check passed: %d checks ==\n' "${PASS_COUNT}"
