@@ -6,12 +6,12 @@
 
 The repository now contains the current `UEFI-first` `x86_64` baseline: a bootable
 `QEMU + OVMF` image, shared kernel services routed through `arch/platform`
-boundaries, and a GOP framebuffer demo path:
+boundaries, and a GOP framebuffer `LVGL` GUI path:
 
 - a `UEFI` boot path built around `BOOTX64.EFI`, `KERNEL.BIN` and a raw disk image with an ESP layout
 - a tiny `x86_64` kernel that receives a `boot_info` handoff with framebuffer and ACPI context
 - `QEMU + OVMF` startup scripts and repeatable runtime validation artifacts
-- a GOP framebuffer demo that draws a visible `TINYOS / UEFI BOOT` screen
+- a GOP framebuffer `LVGL` UI that draws a visible `TINYOS` dashboard with multiple pages
 - an early bump allocator carved out from the end of the loaded kernel image
 - `arch/x86_64` owned `IDT + PIC + PIT` initialization for exceptions, IRQs and the timer tick
 - a minimal tick-driven event loop that gets tick, interrupt and idle behavior from `tinyos_arch_current()`
@@ -122,6 +122,12 @@ Verify the raw image layout before writing USB media:
 make check-image
 ```
 
+Verify the interactive `LVGL` GUI path:
+
+```bash
+make check-ui
+```
+
 This checks the `MBR`, `ESP/FAT16`, mirrored FAT tables, directory entries, and
 verifies that the packed `BOOTX64.EFI` and `KERNEL.BIN` match the build
 artifacts byte-for-byte.
@@ -147,9 +153,9 @@ LPVEABCDKUS
 
 Current visual outcome on the framebuffer:
 
-- a dark background panel with a bright top band
-- a centered `TINYOS` title
-- a second line reading `UEFI BOOT`
+- a dark `LVGL` dashboard with a bright top band
+- a `TINYOS` title with `HOME / SETTINGS / ABOUT / CLEAR`
+- visible `PAGE HOME`, `RUNTIME`, `DASHBOARD`, `INPUT` and `STATUS LVGL UI ACTIVE`
 
 ## Current Boundary
 

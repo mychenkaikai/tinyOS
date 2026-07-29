@@ -15,7 +15,7 @@ Do not collapse these into a single vague statement such as "the image boots".
 
 | Target | Firmware / Boot Path | Medium | Status | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `QEMU` | `OVMF UEFI` | `build/x86_64/tinyos-x86_64.img` | `verified` | `make check-baseline`, `LPVEABCDKUS`, visible `TINYOS / UEFI BOOT` screen | Verified baseline with automated and manual evidence |
+| `QEMU` | `OVMF UEFI` | `build/x86_64/tinyos-x86_64.img` | `verified` | `make check-baseline`, `make check-ui`, `LPVEABCDKUS`, visible `LVGL` home screen | Verified with boot, heartbeat and interactive GUI evidence |
 | `VirtualBox` | `UEFI` | `build/x86_64/tinyos-x86_64.vdi` | `verified` | `make build-vbox`, `make check-vbox`, [x86_64-uefi-virtualbox.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-virtualbox.md), [x86_64-uefi-virtualbox-2026-07-23.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-virtualbox-2026-07-23.md) | Verified by a successful Windows-host VirtualBox boot to the expected framebuffer screen |
 | `VMware` | `UEFI` | same raw image shape | `unverified` | none | Do not claim support yet |
 | `Hyper-V` | `UEFI` | same raw image shape | `unverified` | none | Do not claim support yet |
@@ -38,10 +38,11 @@ Current verified baseline:
 
 - build: `make build`
 - automated check: `make check-baseline`
+- interactive check: `make check-ui`
 - visible run: `make run`
 - expected serial evidence: `tinyOS UEFI loader starting...`
 - expected `debugcon` evidence: `LPVEABCDKUS`
-- expected screen: `TINYOS` and `UEFI BOOT`
+- expected screen: `TINYOS`, `PAGE HOME` and `STATUS LVGL UI ACTIVE`
 
 ## Real-Hardware USB Baseline
 
@@ -75,8 +76,8 @@ Current verified baseline:
 Current success signal:
 
 - `VirtualBox` firmware starts the attached `VDI`
-- tinyOS reaches the framebuffer demo
-- the screen shows `TINYOS` and `UEFI BOOT`
+- tinyOS reaches the framebuffer GUI runtime
+- the screen shows the expected `LVGL` dashboard or a later equivalent interactive page
 
 ## Troubleshooting Entry
 

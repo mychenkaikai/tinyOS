@@ -133,7 +133,7 @@
 
 ## MODIFIED Requirements
 ### Requirement: 项目目标定义
-项目的近期目标从“做一个能跨 x86、ARM、RISC-V、MCU 的个人操作系统”细化为“先做一个在 `x86_64 + QEMU/OVMF` 上完成 `UEFI-first` 启动、内核 handoff 和 framebuffer demo 的个人操作系统基础骨架，同时为后续真机 `UEFI` 启动与 `ARM64/RISC-V` 移植及 `MCU` 子集演进预留清晰抽象边界”。
+项目的近期目标从“做一个能跨 x86、ARM、RISC-V、MCU 的个人操作系统”细化为“先做一个在 `x86_64 + QEMU/OVMF` 上完成 `UEFI-first` 启动、内核 handoff 和 framebuffer `LVGL` GUI runtime 的个人操作系统基础骨架，同时为后续真机 `UEFI` 启动与 `ARM64/RISC-V` 移植及 `MCU` 子集演进预留清晰抽象边界”。
 
 ## REMOVED Requirements
 ### Requirement: 首阶段追求统一的完整跨平台系统能力

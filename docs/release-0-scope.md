@@ -9,7 +9,7 @@ Primary goal:
 
 - boot a freestanding `x86_64` kernel image under `QEMU + OVMF` from a reproducible repository
 - keep the generic kernel core small while routing architecture and machine details through `arch/` and `platform/`
-- demonstrate the minimum visible system path: `UEFI` boot, kernel handoff, memory, timer, event loop and GOP framebuffer demo
+- demonstrate the minimum visible system path: `UEFI` boot, kernel handoff, memory, timer, event loop and GOP framebuffer `LVGL` UI
 - preserve clear extension points for future `aarch64` and `riscv64` ports without rewriting the shared kernel
 
 ## In Scope
@@ -18,8 +18,8 @@ Primary goal:
 - freestanding kernel entry, early serial / `debugcon` logging and bump allocation
 - `arch/x86_64` owned interrupt and timer backend (`IDT + PIC + PIT`)
 - shared kernel event loop driven by `tinyos_arch_current()`
-- platform-agnostic display abstractions with a `UEFI` GOP demo path and retained `x86_64` text/input backends
-- a framebuffer demo that renders a visible `TINYOS / UEFI BOOT` screen
+- platform-agnostic display abstractions with a `UEFI` GOP GUI path and retained `x86_64` text/input backends
+- a framebuffer `LVGL` UI that renders a visible `TINYOS` dashboard with multiple pages
 - build, run and baseline verification scripts for `x86_64 + QEMU + OVMF`
 - reserved `arch/aarch64`, `arch/riscv64`, `platform/aarch64_virt` and `platform/riscv64_virt` bring-up placeholders
 
@@ -27,11 +27,11 @@ Primary goal:
 
 - protected user space, processes, virtual memory or syscall ABI
 - filesystem, networking, storage stack or package/runtime services
-- SMP, advanced scheduler policies, power management or drivers beyond the current demo path
+- SMP, advanced scheduler policies, power management or drivers beyond the current GUI bring-up path
 - verified real hardware portability beyond the current `QEMU + OVMF` reference target
 - `legacy BIOS` compatibility
 - completed `aarch64` or `riscv64` implementations in this release
-- full graphics stack or external GUI runtime integration such as LVGL
+- full graphics stack features beyond the current software-rendered `LVGL` MVP
 
 ## Constraints
 

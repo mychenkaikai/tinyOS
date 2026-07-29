@@ -57,7 +57,7 @@
 
 - [x] Task 12: 建立首批 `UEFI` 虚拟机启动兼容基线
   - [x] SubTask 12.1: 明确首批受支持虚拟机配置至少包含 `QEMU + OVMF`，并允许后续将已验证的 `UEFI` 虚拟机逐步纳入支持边界
-  - [x] SubTask 12.2: 补充 `debugcon`、串口日志与屏幕截图验证记录，证明 `UEFI` loader、kernel handoff 与 framebuffer demo 已跑通
+  - [x] SubTask 12.2: 补充 `debugcon`、串口日志与屏幕截图验证记录，证明 `UEFI` loader、kernel handoff 与 framebuffer `LVGL` GUI runtime 已跑通
   - [x] SubTask 12.3: 记录当前不承诺支持的启动方式，例如 `legacy BIOS`、未验证虚拟机配置和未验证真机环境
   - [x] SubTask 12.4: 为首个非 `QEMU` 的 `UEFI` 虚拟机提供磁盘准备路径、启动说明与成功记录，避免支持边界只停留在 `OVMF`
 

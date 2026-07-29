@@ -127,14 +127,13 @@ On the target machine:
 The current smoke-test success condition is visual:
 
 - firmware launches the removable-media path `EFI/BOOT/BOOTX64.EFI`
-- tinyOS reaches the kernel handoff
+- tinyOS reaches the framebuffer GUI runtime
 - the screen shows:
-  - a bright blue top band
-  - a darker center panel
   - `TINYOS`
-  - `UEFI BOOT`
+  - `PAGE HOME`
+  - `STATUS LVGL UI ACTIVE`
 
-This should match the validated `QEMU + OVMF` screen outcome.
+This should match the validated `QEMU + OVMF` `LVGL` screen outcome.
 
 ## Minimal Smoke-Test Record
 

@@ -60,13 +60,14 @@ Important:
 
 ## Expected Success Signal
 
-The target success condition is the same as the `QEMU + OVMF` framebuffer demo:
+The target success condition is the same as the `QEMU + OVMF` `LVGL` baseline:
 
 - `VirtualBox` firmware starts the attached `VDI`
-- tinyOS reaches the framebuffer demo
+- tinyOS reaches the framebuffer GUI runtime
 - the screen shows:
   - `TINYOS`
-  - `UEFI BOOT`
+  - `PAGE HOME`
+  - `STATUS LVGL UI ACTIVE`
 
 ## Smoke-Test Record
 
@@ -94,4 +95,4 @@ record exists with:
 - the VM settings used
 - the observed result
 - a screenshot or concise note
-- either the expected `TINYOS / UEFI BOOT` screen or a narrower documented success stage
+- either the expected `LVGL` home screen or a narrower documented success stage

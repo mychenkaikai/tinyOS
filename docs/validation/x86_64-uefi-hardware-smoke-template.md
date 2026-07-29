@@ -37,7 +37,7 @@ Do not leave these fields blank:
 
 ## Result Classification
 
-- `yes`: the machine reached the expected `TINYOS / UEFI BOOT` framebuffer screen
+- `yes`: the machine reached the expected `LVGL` framebuffer screen with `TINYOS`, `PAGE HOME` and `STATUS LVGL UI ACTIVE`
 - `no`: record the last visible stage and assign `F0`, `F1`, `F2` or `F3`
 
 ## Storage Convention
