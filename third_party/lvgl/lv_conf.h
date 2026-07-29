@@ -1,3 +1,6 @@
+#ifndef LV_CONF_H
+#define LV_CONF_H
+
 #ifndef TINYOS_LV_CONF_H
 #define TINYOS_LV_CONF_H
 
@@ -73,5 +76,7 @@
 #define LV_USE_IMGFONT 0
 #define LV_USE_IME_PINYIN 0
 #define LV_USE_FILE_EXPLORER 0
+
+#endif
 
 #endif
