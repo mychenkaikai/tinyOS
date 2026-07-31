@@ -128,6 +128,11 @@ Verify the interactive `LVGL` GUI path:
 make check-ui
 ```
 
+This boots the `LVGL` dashboard headlessly, drives `TAB / ENTER / X / 1`
+through the `PS/2 -> event loop -> LVGL` path, verifies the `HOME /
+SETTINGS / ABOUT / CLEAR` state-machine logs, and requires visible framebuffer
+changes for each page switch and input action.
+
 This checks the `MBR`, `ESP/FAT16`, mirrored FAT tables, directory entries, and
 verifies that the packed `BOOTX64.EFI` and `KERNEL.BIN` match the build
 artifacts byte-for-byte.
@@ -156,6 +161,8 @@ Current visual outcome on the framebuffer:
 - a dark `LVGL` dashboard with a bright top band
 - a `TINYOS` title with `HOME / SETTINGS / ABOUT / CLEAR`
 - visible `PAGE HOME`, `RUNTIME`, `DASHBOARD`, `INPUT` and `STATUS LVGL UI ACTIVE`
+- stable navigation where `HOME / SETTINGS / ABOUT` switch pages and `CLEAR`
+  empties the input box without disturbing the active content page
 
 ## Current Boundary
 
