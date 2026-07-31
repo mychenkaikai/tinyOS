@@ -44,14 +44,16 @@ enum tinyos_lvgl_action {
 
 enum tinyos_lvgl_focus {
     TINYOS_LVGL_FOCUS_HOME = 0,
-    TINYOS_LVGL_FOCUS_SETTINGS = 1,
-    TINYOS_LVGL_FOCUS_SETTINGS_TOGGLE = 2,
-    TINYOS_LVGL_FOCUS_ABOUT = 3,
-    TINYOS_LVGL_FOCUS_CLEAR = 4
+    TINYOS_LVGL_FOCUS_HOME_TOGGLE = 1,
+    TINYOS_LVGL_FOCUS_SETTINGS = 2,
+    TINYOS_LVGL_FOCUS_SETTINGS_TOGGLE = 3,
+    TINYOS_LVGL_FOCUS_ABOUT = 4,
+    TINYOS_LVGL_FOCUS_CLEAR = 5
 };
 
 struct tinyos_lvgl_state {
     bool ready;
+    bool home_details;
     bool key_echo;
     volatile uint32_t *framebuffer;
     uint32_t width;
@@ -71,6 +73,7 @@ struct tinyos_lvgl_state {
     lv_group_t *group;
     void *draw_buffer;
     lv_obj_t *button_home;
+    lv_obj_t *home_toggle;
     lv_obj_t *button_settings;
     lv_obj_t *settings_toggle;
     lv_obj_t *button_about;
@@ -80,6 +83,8 @@ struct tinyos_lvgl_state {
     lv_obj_t *status_label;
     lv_obj_t *content_title;
     lv_obj_t *content_body;
+    lv_obj_t *home_hint;
+    lv_obj_t *home_toggle_label;
     lv_obj_t *settings_hint;
     lv_obj_t *settings_toggle_label;
     lv_obj_t *input_box;
@@ -87,6 +92,7 @@ struct tinyos_lvgl_state {
 
 static struct tinyos_lvgl_state g_lvgl = {
     .ready = false,
+    .home_details = false,
     .key_echo = true,
     .framebuffer = (volatile uint32_t *)0,
     .width = 0u,
@@ -106,6 +112,7 @@ static struct tinyos_lvgl_state g_lvgl = {
     .group = (lv_group_t *)0,
     .draw_buffer = (void *)0,
     .button_home = (lv_obj_t *)0,
+    .home_toggle = (lv_obj_t *)0,
     .button_settings = (lv_obj_t *)0,
     .settings_toggle = (lv_obj_t *)0,
     .button_about = (lv_obj_t *)0,
@@ -115,6 +122,8 @@ static struct tinyos_lvgl_state g_lvgl = {
     .status_label = (lv_obj_t *)0,
     .content_title = (lv_obj_t *)0,
     .content_body = (lv_obj_t *)0,
+    .home_hint = (lv_obj_t *)0,
+    .home_toggle_label = (lv_obj_t *)0,
     .settings_hint = (lv_obj_t *)0,
     .settings_toggle_label = (lv_obj_t *)0,
     .input_box = (lv_obj_t *)0
@@ -258,6 +267,10 @@ static const char *action_name(uint8_t action) {
 }
 
 static const char *focus_name(uint8_t focus) {
+    if (focus == TINYOS_LVGL_FOCUS_HOME_TOGGLE) {
+        return "HOME_TOGGLE";
+    }
+
     if (focus == TINYOS_LVGL_FOCUS_SETTINGS) {
         return "SETTINGS";
     }
@@ -395,6 +408,10 @@ static void flush_display(lv_display_t *display, const lv_area_t *area, uint8_t 
 }
 
 static lv_obj_t *focus_object(enum tinyos_lvgl_focus focus) {
+    if (focus == TINYOS_LVGL_FOCUS_HOME_TOGGLE) {
+        return g_lvgl.home_toggle;
+    }
+
     if (focus == TINYOS_LVGL_FOCUS_SETTINGS) {
         return g_lvgl.button_settings;
     }
@@ -416,6 +433,13 @@ static lv_obj_t *focus_object(enum tinyos_lvgl_focus focus) {
 
 static enum tinyos_lvgl_focus next_focus_target(enum tinyos_lvgl_focus focus) {
     if (focus == TINYOS_LVGL_FOCUS_HOME) {
+        if (g_lvgl.active_page == TINYOS_LVGL_PAGE_HOME) {
+            return TINYOS_LVGL_FOCUS_HOME_TOGGLE;
+        }
+        return TINYOS_LVGL_FOCUS_SETTINGS;
+    }
+
+    if (focus == TINYOS_LVGL_FOCUS_HOME_TOGGLE) {
         return TINYOS_LVGL_FOCUS_SETTINGS;
     }
 
@@ -447,6 +471,21 @@ static uint32_t input_text_length(void) {
     }
 
     return string_length(lv_textarea_get_text(g_lvgl.input_box));
+}
+
+static void hide_page_controls(void) {
+    if (g_lvgl.home_toggle != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.home_toggle, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (g_lvgl.home_hint != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.home_hint, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (g_lvgl.settings_toggle != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.settings_toggle, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (g_lvgl.settings_hint != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 static void log_ui_state(const char *event_name, const char *detail) {
@@ -509,6 +548,7 @@ static void update_content_labels(void) {
     }
 
     copy_string(body, (uint32_t)sizeof(body), "");
+    hide_page_controls();
     if (g_lvgl.active_page == TINYOS_LVGL_PAGE_SETTINGS) {
         lv_label_set_text(g_lvgl.content_title, "SETTINGS");
         append_string(body, (uint32_t)sizeof(body), "SETTINGS NOW HAS A PAGE CONTROL.");
@@ -534,24 +574,26 @@ static void update_content_labels(void) {
         append_string(body, (uint32_t)sizeof(body), "\nARE WIRED INTO THE KERNEL EVENT LOOP.");
         append_string(body, (uint32_t)sizeof(body), "\nTHE OLD BUILTIN FRAMEBUFFER UI REMAINS");
         append_string(body, (uint32_t)sizeof(body), "\nAS THE FALLBACK PATH.");
-        if (g_lvgl.settings_toggle != (lv_obj_t *)0) {
-            lv_obj_add_flag(g_lvgl.settings_toggle, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (g_lvgl.settings_hint != (lv_obj_t *)0) {
-            lv_obj_add_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
-        }
     } else {
         lv_label_set_text(g_lvgl.content_title, "DASHBOARD");
         append_string(body, (uint32_t)sizeof(body), "UEFI GOP FRAMEBUFFER ACTIVE");
         append_string(body, (uint32_t)sizeof(body), "\nLVGL SW RENDERER ACTIVE");
-        append_string(body, (uint32_t)sizeof(body), "\nTASK LOOP ACTIVE");
+        append_string(body, (uint32_t)sizeof(body), g_lvgl.home_details ? "\nDETAIL MODE ENABLED" : "\nDETAIL MODE DISABLED");
         append_string(body, (uint32_t)sizeof(body), "\nHOTKEYS: 1 HOME  2 SETTINGS  3 ABOUT");
         append_string(body, (uint32_t)sizeof(body), "\nTAB NEXT  ENTER OPEN/TOGGLE  0 CLEAR");
-        if (g_lvgl.settings_toggle != (lv_obj_t *)0) {
-            lv_obj_add_flag(g_lvgl.settings_toggle, LV_OBJ_FLAG_HIDDEN);
+        if (g_lvgl.home_details) {
+            append_string(body, (uint32_t)sizeof(body), "\nBOOT PATH: UEFI GOP + LVGL");
+            append_string(body, (uint32_t)sizeof(body), "\nINPUT PATH: PS/2 -> QUEUE -> UI");
         }
-        if (g_lvgl.settings_hint != (lv_obj_t *)0) {
-            lv_obj_add_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
+        if (g_lvgl.home_toggle != (lv_obj_t *)0) {
+            lv_obj_remove_flag(g_lvgl.home_toggle, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (g_lvgl.home_hint != (lv_obj_t *)0) {
+            lv_obj_remove_flag(g_lvgl.home_hint, LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(g_lvgl.home_hint, "ENTER OR D TO TOGGLE HOME DETAILS");
+        }
+        if (g_lvgl.home_toggle_label != (lv_obj_t *)0) {
+            lv_label_set_text_fmt(g_lvgl.home_toggle_label, "DETAIL MODE: %s", g_lvgl.home_details ? "ON" : "OFF");
         }
     }
 
@@ -600,6 +642,16 @@ static void clear_input_box(void) {
     }
 }
 
+static void toggle_home_details(void) {
+    g_lvgl.active_page = TINYOS_LVGL_PAGE_HOME;
+    g_lvgl.focused_target = TINYOS_LVGL_FOCUS_HOME_TOGGLE;
+    g_lvgl.home_details = !g_lvgl.home_details;
+    set_status(g_lvgl.home_details ? "DETAIL MODE ENABLED" : "DETAIL MODE DISABLED");
+    update_content_labels();
+    sync_group_focus();
+    log_ui_state("action", "TOGGLE_HOME_DETAILS");
+}
+
 static void set_focus_target(enum tinyos_lvgl_focus target) {
     g_lvgl.focused_target = (uint8_t)target;
     sync_group_focus();
@@ -635,10 +687,18 @@ static void handle_action(enum tinyos_lvgl_action action) {
         update_content_labels();
         sync_group_focus();
     } else {
-        activate_page(TINYOS_LVGL_PAGE_HOME, TINYOS_LVGL_FOCUS_HOME, "HOME PAGE ACTIVE");
+        activate_page(TINYOS_LVGL_PAGE_HOME, TINYOS_LVGL_FOCUS_HOME_TOGGLE, "HOME PAGE ACTIVE");
     }
 
     log_ui_state("action", action_name((uint8_t)action));
+}
+
+static void home_toggle_event_cb(lv_event_t *event) {
+    if ((event == NULL) || (lv_event_get_code(event) != LV_EVENT_CLICKED)) {
+        return;
+    }
+
+    toggle_home_details();
 }
 
 static void settings_toggle_event_cb(lv_event_t *event) {
@@ -647,6 +707,16 @@ static void settings_toggle_event_cb(lv_event_t *event) {
     }
 
     toggle_key_echo();
+}
+
+static lv_obj_t *create_home_toggle(lv_obj_t *parent) {
+    lv_obj_t *button = lv_button_create(parent);
+
+    lv_obj_set_width(button, lv_pct(100));
+    lv_obj_add_event_cb(button, home_toggle_event_cb, LV_EVENT_CLICKED, (void *)0);
+    g_lvgl.home_toggle_label = lv_label_create(button);
+    lv_obj_center(g_lvgl.home_toggle_label);
+    return button;
 }
 
 static void button_event_cb(lv_event_t *event) {
@@ -769,6 +839,13 @@ static void build_ui(void) {
     g_lvgl.content_body = lv_label_create(content_panel);
     lv_obj_set_width(g_lvgl.content_body, lv_pct(100));
 
+    g_lvgl.home_toggle = create_home_toggle(content_panel);
+    g_lvgl.home_hint = lv_label_create(content_panel);
+    lv_obj_set_width(g_lvgl.home_hint, lv_pct(100));
+    lv_obj_set_style_text_color(g_lvgl.home_hint, lv_color_hex(0x9AB4D6), 0);
+    lv_obj_add_flag(g_lvgl.home_toggle, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(g_lvgl.home_hint, LV_OBJ_FLAG_HIDDEN);
+
     g_lvgl.settings_toggle = create_settings_toggle(content_panel);
     g_lvgl.settings_hint = lv_label_create(content_panel);
     lv_obj_set_width(g_lvgl.settings_hint, lv_pct(100));
@@ -804,6 +881,7 @@ static void build_ui(void) {
 
     if (g_lvgl.group != (lv_group_t *)0) {
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_home);
+        lv_group_add_obj(g_lvgl.group, g_lvgl.home_toggle);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_settings);
         lv_group_add_obj(g_lvgl.group, g_lvgl.settings_toggle);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_about);
@@ -860,7 +938,8 @@ bool tinyos_lvgl_init(const struct tinyos_boot_info *boot_info) {
     g_lvgl.last_arch_tick = current_ticks();
     g_lvgl.last_scancode = 0u;
     g_lvgl.active_page = TINYOS_LVGL_PAGE_HOME;
-    g_lvgl.focused_target = TINYOS_LVGL_FOCUS_HOME;
+    g_lvgl.focused_target = TINYOS_LVGL_FOCUS_HOME_TOGGLE;
+    g_lvgl.home_details = false;
     g_lvgl.key_echo = true;
     copy_string(g_lvgl.last_key, TINYOS_LVGL_LAST_KEY_CAPACITY, "NONE");
     copy_string(g_lvgl.status, TINYOS_LVGL_STATUS_CAPACITY, "LVGL UI ACTIVE");
@@ -955,6 +1034,13 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
         }
     }
 
+    if ((event->character == 'd') || (event->character == 'D')) {
+        if (g_lvgl.active_page == TINYOS_LVGL_PAGE_HOME) {
+            toggle_home_details();
+            return;
+        }
+    }
+
     if (event->character == '\b') {
         if (input_text_length() == 0u) {
             set_status("INPUT ALREADY EMPTY");
@@ -997,6 +1083,8 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
         update_content_labels();
         if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_SETTINGS_TOGGLE) {
             toggle_key_echo();
+        } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_HOME_TOGGLE) {
+            toggle_home_details();
         } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_SETTINGS) {
             handle_action(TINYOS_LVGL_ACTION_SETTINGS);
         } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_ABOUT) {
