@@ -13,6 +13,9 @@ DEBUGCON_LOG_FILE="${TMP_DIR}/qemu-debugcon.log"
 QMP_SOCKET="${TMP_DIR}/qmp.sock"
 BEFORE_PPM="${TMP_DIR}/before.ppm"
 SETTINGS_PPM="${TMP_DIR}/settings.ppm"
+SETTINGS_OFF_PPM="${TMP_DIR}/settings-off.ppm"
+SETTINGS_BLOCKED_PPM="${TMP_DIR}/settings-blocked.ppm"
+SETTINGS_ON_PPM="${TMP_DIR}/settings-on.ppm"
 ABOUT_PPM="${TMP_DIR}/about.ppm"
 ABOUT_INPUT_PPM="${TMP_DIR}/about-input.ppm"
 CLEAR_PPM="${TMP_DIR}/clear.ppm"
@@ -73,6 +76,9 @@ rm -f \
     "${QMP_SOCKET}" \
     "${BEFORE_PPM}" \
     "${SETTINGS_PPM}" \
+    "${SETTINGS_OFF_PPM}" \
+    "${SETTINGS_BLOCKED_PPM}" \
+    "${SETTINGS_ON_PPM}" \
     "${ABOUT_PPM}" \
     "${ABOUT_INPUT_PPM}" \
     "${CLEAR_PPM}" \
@@ -124,13 +130,13 @@ if ! grep -Eq '\[event\] heartbeat=' "${SERIAL_LOG_FILE}"; then
     fail "Kernel heartbeat did not appear before interaction"
 fi
 
-python3 - "${QMP_SOCKET}" "${BEFORE_PPM}" "${SETTINGS_PPM}" "${ABOUT_PPM}" "${ABOUT_INPUT_PPM}" "${CLEAR_PPM}" "${HOME_RETURN_PPM}" <<'PY'
+python3 - "${QMP_SOCKET}" "${BEFORE_PPM}" "${SETTINGS_PPM}" "${SETTINGS_OFF_PPM}" "${SETTINGS_BLOCKED_PPM}" "${SETTINGS_ON_PPM}" "${ABOUT_PPM}" "${ABOUT_INPUT_PPM}" "${CLEAR_PPM}" "${HOME_RETURN_PPM}" <<'PY'
 import json
 import socket
 import sys
 import time
 
-sock_path, before_ppm, settings_ppm, about_ppm, about_input_ppm, clear_ppm, home_return_ppm = sys.argv[1:8]
+sock_path, before_ppm, settings_ppm, settings_off_ppm, settings_blocked_ppm, settings_on_ppm, about_ppm, about_input_ppm, clear_ppm, home_return_ppm = sys.argv[1:11]
 
 def recv_message(sock):
     data = b""
@@ -169,6 +175,15 @@ time.sleep(0.5)
 send_key(sock, "tab", 0.4)
 send_key(sock, "ret", 1.0)
 execute_hmp(sock, f"screendump {settings_ppm}")
+time.sleep(0.4)
+send_key(sock, "ret", 0.8)
+execute_hmp(sock, f"screendump {settings_off_ppm}")
+time.sleep(0.4)
+send_key(sock, "x", 0.6)
+execute_hmp(sock, f"screendump {settings_blocked_ppm}")
+time.sleep(0.4)
+send_key(sock, "ret", 1.0)
+execute_hmp(sock, f"screendump {settings_on_ppm}")
 time.sleep(0.4)
 send_key(sock, "tab", 0.4)
 send_key(sock, "ret", 1.0)
@@ -213,17 +228,20 @@ require_log_line '\[input\].*char=enter' "Enter key reached the GUI input path" 
 require_log_line '\[input\].*char=x' "Printable key reached the GUI input path" "${SERIAL_LOG_FILE}"
 require_log_line '\[input\].*char=1' "Direct page hotkey reached the GUI input path" "${SERIAL_LOG_FILE}"
 require_log_line '\[lvgl\] focus=SETTINGS page=HOME focus=SETTINGS .*status=FOCUS MOVED' "Focus moved onto SETTINGS before activation" "${SERIAL_LOG_FILE}"
-require_log_line '\[lvgl\] action=SETTINGS page=SETTINGS focus=SETTINGS .*status=SETTINGS PAGE ACTIVE' "SETTINGS page activation executed" "${SERIAL_LOG_FILE}"
+require_log_line '\[lvgl\] action=SETTINGS page=SETTINGS focus=SETTINGS_TOGGLE .*status=SETTINGS PAGE ACTIVE' "SETTINGS page activation executed" "${SERIAL_LOG_FILE}"
+require_log_line '\[lvgl\] action=TOGGLE_KEY_ECHO page=SETTINGS focus=SETTINGS_TOGGLE key_echo=OFF .*status=KEY ECHO DISABLED' "SETTINGS toggle disabled key echo" "${SERIAL_LOG_FILE}"
+require_log_line '\[lvgl\] input=SUPPRESSED page=SETTINGS focus=SETTINGS_TOGGLE key_echo=OFF input_len=0 status=INPUT BLOCKED' "Printable input was blocked while key echo was off" "${SERIAL_LOG_FILE}"
+require_log_line '\[lvgl\] action=TOGGLE_KEY_ECHO page=SETTINGS focus=SETTINGS_TOGGLE key_echo=ON .*status=KEY ECHO ENABLED' "SETTINGS toggle re-enabled key echo" "${SERIAL_LOG_FILE}"
 require_log_line '\[lvgl\] action=ABOUT page=ABOUT focus=ABOUT .*status=ABOUT PAGE ACTIVE' "ABOUT page activation executed" "${SERIAL_LOG_FILE}"
-require_log_line '\[lvgl\] input=APPEND page=ABOUT focus=ABOUT .*input_len=1 status=INPUT UPDATED' "Printable input updated the LVGL input box" "${SERIAL_LOG_FILE}"
+require_log_line '\[lvgl\] input=APPEND page=ABOUT focus=ABOUT key_echo=ON input_len=1 status=INPUT UPDATED' "Printable input updated the LVGL input box" "${SERIAL_LOG_FILE}"
 require_log_line '\[lvgl\] action=CLEAR page=ABOUT focus=CLEAR .*input_len=0 status=INPUT CLEARED' "CLEAR action emptied the LVGL input box" "${SERIAL_LOG_FILE}"
 require_log_line '\[lvgl\] action=HOME page=HOME focus=HOME .*status=HOME PAGE ACTIVE' "HOME hotkey returned to the home page" "${SERIAL_LOG_FILE}"
 require_log_line 'LPVEABCDKUS' "UEFI loader and kernel handoff markers observed" "${DEBUGCON_LOG_FILE}"
 
-python3 - "${BEFORE_PPM}" "${SETTINGS_PPM}" "${ABOUT_PPM}" "${ABOUT_INPUT_PPM}" "${CLEAR_PPM}" "${HOME_RETURN_PPM}" "${PIXEL_DIFFS_FILE}" <<'PY'
+python3 - "${BEFORE_PPM}" "${SETTINGS_PPM}" "${SETTINGS_OFF_PPM}" "${SETTINGS_BLOCKED_PPM}" "${SETTINGS_ON_PPM}" "${ABOUT_PPM}" "${ABOUT_INPUT_PPM}" "${CLEAR_PPM}" "${HOME_RETURN_PPM}" "${PIXEL_DIFFS_FILE}" <<'PY'
 import sys
 
-before_path, settings_path, about_path, about_input_path, clear_path, home_return_path, output_path = sys.argv[1:8]
+before_path, settings_path, settings_off_path, settings_blocked_path, settings_on_path, about_path, about_input_path, clear_path, home_return_path, output_path = sys.argv[1:11]
 
 def read_ppm(path):
     with open(path, "rb") as handle:
@@ -248,7 +266,10 @@ def changed_pixels(first, second):
 
 captures = {
     "home_to_settings": (read_ppm(before_path), read_ppm(settings_path), 100),
-    "settings_to_about": (read_ppm(settings_path), read_ppm(about_path), 100),
+    "settings_to_toggle_off": (read_ppm(settings_path), read_ppm(settings_off_path), 100),
+    "toggle_off_to_blocked": (read_ppm(settings_off_path), read_ppm(settings_blocked_path), 16),
+    "blocked_to_toggle_on": (read_ppm(settings_blocked_path), read_ppm(settings_on_path), 100),
+    "settings_to_about": (read_ppm(settings_on_path), read_ppm(about_path), 100),
     "about_to_input": (read_ppm(about_path), read_ppm(about_input_path), 16),
     "input_to_clear": (read_ppm(about_input_path), read_ppm(clear_path), 16),
     "clear_to_home": (read_ppm(clear_path), read_ppm(home_return_path), 100),
