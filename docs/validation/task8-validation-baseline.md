@@ -45,11 +45,11 @@ with a concrete record in
 
 ### Input
 
-- Automated evidence: `make check-ui` injects `Tab`, `Enter`, `D`, `X`, and
-  `1`, then verifies both `[input]` lines and `[lvgl]` state-machine lines
-  for the `HOME` details toggle, the `SETTINGS` toggle, blocked input while
-  `KEY ECHO` is off, restored input after it is re-enabled, plus `ABOUT`,
-  `CLEAR`, and `HOME`
+- Automated evidence: `make check-ui` injects `Tab`, `Enter`, `D`, `I`, `X`,
+  and `1`, then verifies both `[input]` lines and `[lvgl]` state-machine
+  lines for the `HOME` details toggle, the `SETTINGS` toggle, the `ABOUT`
+  notes toggle, blocked input while `KEY ECHO` is off, restored input after
+  it is re-enabled, plus `CLEAR` and `HOME`
 - Manual evidence: optional; the visible navigation, toggle behavior, and
   clear behavior should match the injected key path
 - Pass condition: the `QMP sendkey -> PS/2 IRQ -> input queue -> LVGL render` chain completes without hanging
@@ -58,8 +58,9 @@ with a concrete record in
 
 - Automated evidence: `make check-ui` records screen dumps for `HOME ->
   DETAIL MODE ON -> DETAIL MODE OFF -> SETTINGS -> KEY ECHO OFF -> blocked
-  input -> KEY ECHO ON -> ABOUT -> typed input -> CLEAR -> HOME` and requires
-  visible pixel changes at each stage
+  input -> KEY ECHO ON -> ABOUT -> SYSTEM NOTES ON -> SYSTEM NOTES OFF ->
+  typed input -> CLEAR -> HOME` and requires visible pixel changes at each
+  stage
 - Manual evidence: the screen shows `PAGE HOME`, `RUNTIME`, `DASHBOARD`, `INPUT` and `STATUS LVGL UI ACTIVE`
 - Pass condition: the `LVGL` UI remains stable after kernel handoff and updates in response to injected input
 
@@ -118,7 +119,7 @@ The interaction check automates the following:
 
 1. boots `QEMU + OVMF` with a `QMP` socket
 2. waits for the kernel heartbeat to prove the event loop is live
-3. injects `Enter`, `D`, `Tab`, `Enter`, `Enter`, `X`, `Enter`, `Tab`, `Enter`, `X`, `Tab`, `Enter`, and `1` into the `PS/2` path
+3. injects `Enter`, `D`, `Tab`, `Enter`, `Enter`, `X`, `Enter`, `Tab`, `Enter`, `Enter`, `I`, `X`, `Tab`, `Enter`, and `1` into the `PS/2` path
 4. verifies the expected `[input]` lines plus `[lvgl]` page, focus, toggle, blocked-input, and clear-action logs
 5. captures framebuffer dumps across the full interaction sequence and requires visible pixel changes for each transition
 
@@ -144,9 +145,11 @@ Use `make run` for the screen-visible demo and perform this quick check:
    `ENTER` or `D` flips it between `ON` and `OFF`
 5. confirm the `SETTINGS` page exposes a focusable `KEY ECHO` toggle and that
    `ENTER` flips it between `ON` and `OFF`
-6. confirm `HOME / SETTINGS / ABOUT` switch pages consistently while `CLEAR`
+6. confirm the `ABOUT` page exposes a focusable `SYSTEM NOTES` toggle and that
+   `ENTER` or `I` flips it between `ON` and `OFF`
+7. confirm `HOME / SETTINGS / ABOUT` switch pages consistently while `CLEAR`
    empties the input box and preserves the current content page
-7. confirm the serial / `debugcon` evidence matches the current expected handoff sequence
+8. confirm the serial / `debugcon` evidence matches the current expected handoff sequence
 
 ## Boot-Media Status Discipline
 

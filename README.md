@@ -128,12 +128,13 @@ Verify the interactive `LVGL` GUI path:
 make check-ui
 ```
 
-This boots the `LVGL` dashboard headlessly, drives `TAB / ENTER / D / X / 1`
-through the `PS/2 -> event loop -> LVGL` path, verifies the `HOME /
+This boots the `LVGL` dashboard headlessly, drives `TAB / ENTER / D / I / X /
+1` through the `PS/2 -> event loop -> LVGL` path, verifies the `HOME /
 SETTINGS / ABOUT / CLEAR` state-machine logs, checks the `HOME` page
-toggle for `DETAIL MODE ON -> DETAIL MODE OFF`, checks the `SETTINGS`
-page toggle for `KEY ECHO OFF -> blocked input -> KEY ECHO ON`, and
-requires visible framebuffer changes for each page switch and input action.
+toggle for `DETAIL MODE ON -> DETAIL MODE OFF`, the `SETTINGS` page
+toggle for `KEY ECHO OFF -> blocked input -> KEY ECHO ON`, the `ABOUT`
+page toggle for `SYSTEM NOTES ON -> SYSTEM NOTES OFF`, and requires
+visible framebuffer changes for each page switch and input action.
 
 This checks the `MBR`, `ESP/FAT16`, mirrored FAT tables, directory entries, and
 verifies that the packed `BOOTX64.EFI` and `KERNEL.BIN` match the build
@@ -169,6 +170,8 @@ Current visual outcome on the framebuffer:
   `TAB` and activated with `ENTER` or `D`
 - a `SETTINGS` page with a real `KEY ECHO` toggle button that can be focused
   with `TAB` and activated with `ENTER`
+- an `ABOUT` page with a real `SYSTEM NOTES` toggle that can be focused with
+  `TAB` and activated with `ENTER` or `I`
 
 ## Current Boundary
 

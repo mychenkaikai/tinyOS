@@ -27,7 +27,7 @@
 #define TINYOS_LVGL_LAST_KEY_CAPACITY 16u
 #define TINYOS_LVGL_STATUS_CAPACITY 48u
 #define TINYOS_LVGL_DECIMAL_CAPACITY 24u
-#define TINYOS_LVGL_PAGE_TEXT_CAPACITY 192u
+#define TINYOS_LVGL_PAGE_TEXT_CAPACITY 320u
 
 enum tinyos_lvgl_page {
     TINYOS_LVGL_PAGE_HOME = 0,
@@ -48,12 +48,14 @@ enum tinyos_lvgl_focus {
     TINYOS_LVGL_FOCUS_SETTINGS = 2,
     TINYOS_LVGL_FOCUS_SETTINGS_TOGGLE = 3,
     TINYOS_LVGL_FOCUS_ABOUT = 4,
-    TINYOS_LVGL_FOCUS_CLEAR = 5
+    TINYOS_LVGL_FOCUS_ABOUT_TOGGLE = 5,
+    TINYOS_LVGL_FOCUS_CLEAR = 6
 };
 
 struct tinyos_lvgl_state {
     bool ready;
     bool home_details;
+    bool about_notes;
     bool key_echo;
     volatile uint32_t *framebuffer;
     uint32_t width;
@@ -77,6 +79,7 @@ struct tinyos_lvgl_state {
     lv_obj_t *button_settings;
     lv_obj_t *settings_toggle;
     lv_obj_t *button_about;
+    lv_obj_t *about_toggle;
     lv_obj_t *button_clear;
     lv_obj_t *page_label;
     lv_obj_t *runtime_label;
@@ -87,12 +90,15 @@ struct tinyos_lvgl_state {
     lv_obj_t *home_toggle_label;
     lv_obj_t *settings_hint;
     lv_obj_t *settings_toggle_label;
+    lv_obj_t *about_hint;
+    lv_obj_t *about_toggle_label;
     lv_obj_t *input_box;
 };
 
 static struct tinyos_lvgl_state g_lvgl = {
     .ready = false,
     .home_details = false,
+    .about_notes = false,
     .key_echo = true,
     .framebuffer = (volatile uint32_t *)0,
     .width = 0u,
@@ -116,6 +122,7 @@ static struct tinyos_lvgl_state g_lvgl = {
     .button_settings = (lv_obj_t *)0,
     .settings_toggle = (lv_obj_t *)0,
     .button_about = (lv_obj_t *)0,
+    .about_toggle = (lv_obj_t *)0,
     .button_clear = (lv_obj_t *)0,
     .page_label = (lv_obj_t *)0,
     .runtime_label = (lv_obj_t *)0,
@@ -126,6 +133,8 @@ static struct tinyos_lvgl_state g_lvgl = {
     .home_toggle_label = (lv_obj_t *)0,
     .settings_hint = (lv_obj_t *)0,
     .settings_toggle_label = (lv_obj_t *)0,
+    .about_hint = (lv_obj_t *)0,
+    .about_toggle_label = (lv_obj_t *)0,
     .input_box = (lv_obj_t *)0
 };
 
@@ -283,6 +292,10 @@ static const char *focus_name(uint8_t focus) {
         return "ABOUT";
     }
 
+    if (focus == TINYOS_LVGL_FOCUS_ABOUT_TOGGLE) {
+        return "ABOUT_TOGGLE";
+    }
+
     if (focus == TINYOS_LVGL_FOCUS_CLEAR) {
         return "CLEAR";
     }
@@ -424,6 +437,10 @@ static lv_obj_t *focus_object(enum tinyos_lvgl_focus focus) {
         return g_lvgl.button_about;
     }
 
+    if (focus == TINYOS_LVGL_FOCUS_ABOUT_TOGGLE) {
+        return g_lvgl.about_toggle;
+    }
+
     if (focus == TINYOS_LVGL_FOCUS_CLEAR) {
         return g_lvgl.button_clear;
     }
@@ -455,6 +472,13 @@ static enum tinyos_lvgl_focus next_focus_target(enum tinyos_lvgl_focus focus) {
     }
 
     if (focus == TINYOS_LVGL_FOCUS_ABOUT) {
+        if (g_lvgl.active_page == TINYOS_LVGL_PAGE_ABOUT) {
+            return TINYOS_LVGL_FOCUS_ABOUT_TOGGLE;
+        }
+        return TINYOS_LVGL_FOCUS_CLEAR;
+    }
+
+    if (focus == TINYOS_LVGL_FOCUS_ABOUT_TOGGLE) {
         return TINYOS_LVGL_FOCUS_CLEAR;
     }
 
@@ -485,6 +509,12 @@ static void hide_page_controls(void) {
     }
     if (g_lvgl.settings_hint != (lv_obj_t *)0) {
         lv_obj_add_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (g_lvgl.about_toggle != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.about_toggle, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (g_lvgl.about_hint != (lv_obj_t *)0) {
+        lv_obj_add_flag(g_lvgl.about_hint, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -574,6 +604,23 @@ static void update_content_labels(void) {
         append_string(body, (uint32_t)sizeof(body), "\nARE WIRED INTO THE KERNEL EVENT LOOP.");
         append_string(body, (uint32_t)sizeof(body), "\nTHE OLD BUILTIN FRAMEBUFFER UI REMAINS");
         append_string(body, (uint32_t)sizeof(body), "\nAS THE FALLBACK PATH.");
+        append_string(body, (uint32_t)sizeof(body), "\nI ALSO TOGGLES THE NOTES PANEL.");
+        if (g_lvgl.about_notes) {
+            append_string(body, (uint32_t)sizeof(body), "\nSERIAL LOGS NOW EXPOSE LVGL PAGE, FOCUS");
+            append_string(body, (uint32_t)sizeof(body), "\nAND CONTROL STATE FOR HEADLESS TESTS.");
+            append_string(body, (uint32_t)sizeof(body), "\nCHECK-UI DRIVES HOME, SETTINGS, ABOUT");
+            append_string(body, (uint32_t)sizeof(body), "\nAND CLEAR THROUGH THE SAME INPUT PATH.");
+        }
+        if (g_lvgl.about_toggle != (lv_obj_t *)0) {
+            lv_obj_remove_flag(g_lvgl.about_toggle, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (g_lvgl.about_hint != (lv_obj_t *)0) {
+            lv_obj_remove_flag(g_lvgl.about_hint, LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(g_lvgl.about_hint, "ENTER OR I TO TOGGLE SYSTEM NOTES");
+        }
+        if (g_lvgl.about_toggle_label != (lv_obj_t *)0) {
+            lv_label_set_text_fmt(g_lvgl.about_toggle_label, "SYSTEM NOTES: %s", g_lvgl.about_notes ? "ON" : "OFF");
+        }
     } else {
         lv_label_set_text(g_lvgl.content_title, "DASHBOARD");
         append_string(body, (uint32_t)sizeof(body), "UEFI GOP FRAMEBUFFER ACTIVE");
@@ -652,6 +699,16 @@ static void toggle_home_details(void) {
     log_ui_state("action", "TOGGLE_HOME_DETAILS");
 }
 
+static void toggle_about_notes(void) {
+    g_lvgl.active_page = TINYOS_LVGL_PAGE_ABOUT;
+    g_lvgl.focused_target = TINYOS_LVGL_FOCUS_ABOUT_TOGGLE;
+    g_lvgl.about_notes = !g_lvgl.about_notes;
+    set_status(g_lvgl.about_notes ? "SYSTEM NOTES ENABLED" : "SYSTEM NOTES DISABLED");
+    update_content_labels();
+    sync_group_focus();
+    log_ui_state("action", "TOGGLE_ABOUT_NOTES");
+}
+
 static void set_focus_target(enum tinyos_lvgl_focus target) {
     g_lvgl.focused_target = (uint8_t)target;
     sync_group_focus();
@@ -679,7 +736,7 @@ static void handle_action(enum tinyos_lvgl_action action) {
     if (action == TINYOS_LVGL_ACTION_SETTINGS) {
         activate_page(TINYOS_LVGL_PAGE_SETTINGS, TINYOS_LVGL_FOCUS_SETTINGS_TOGGLE, "SETTINGS PAGE ACTIVE");
     } else if (action == TINYOS_LVGL_ACTION_ABOUT) {
-        activate_page(TINYOS_LVGL_PAGE_ABOUT, TINYOS_LVGL_FOCUS_ABOUT, "ABOUT PAGE ACTIVE");
+        activate_page(TINYOS_LVGL_PAGE_ABOUT, TINYOS_LVGL_FOCUS_ABOUT_TOGGLE, "ABOUT PAGE ACTIVE");
     } else if (action == TINYOS_LVGL_ACTION_CLEAR) {
         g_lvgl.focused_target = TINYOS_LVGL_FOCUS_CLEAR;
         clear_input_box();
@@ -707,6 +764,14 @@ static void settings_toggle_event_cb(lv_event_t *event) {
     }
 
     toggle_key_echo();
+}
+
+static void about_toggle_event_cb(lv_event_t *event) {
+    if ((event == NULL) || (lv_event_get_code(event) != LV_EVENT_CLICKED)) {
+        return;
+    }
+
+    toggle_about_notes();
 }
 
 static lv_obj_t *create_home_toggle(lv_obj_t *parent) {
@@ -737,6 +802,16 @@ static lv_obj_t *create_settings_toggle(lv_obj_t *parent) {
     lv_obj_add_event_cb(button, settings_toggle_event_cb, LV_EVENT_CLICKED, (void *)0);
     g_lvgl.settings_toggle_label = lv_label_create(button);
     lv_obj_center(g_lvgl.settings_toggle_label);
+    return button;
+}
+
+static lv_obj_t *create_about_toggle(lv_obj_t *parent) {
+    lv_obj_t *button = lv_button_create(parent);
+
+    lv_obj_set_width(button, lv_pct(100));
+    lv_obj_add_event_cb(button, about_toggle_event_cb, LV_EVENT_CLICKED, (void *)0);
+    g_lvgl.about_toggle_label = lv_label_create(button);
+    lv_obj_center(g_lvgl.about_toggle_label);
     return button;
 }
 
@@ -853,6 +928,13 @@ static void build_ui(void) {
     lv_obj_add_flag(g_lvgl.settings_toggle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
 
+    g_lvgl.about_toggle = create_about_toggle(content_panel);
+    g_lvgl.about_hint = lv_label_create(content_panel);
+    lv_obj_set_width(g_lvgl.about_hint, lv_pct(100));
+    lv_obj_set_style_text_color(g_lvgl.about_hint, lv_color_hex(0x9AB4D6), 0);
+    lv_obj_add_flag(g_lvgl.about_toggle, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(g_lvgl.about_hint, LV_OBJ_FLAG_HIDDEN);
+
     lv_obj_set_width(input_panel, lv_pct(100));
     lv_obj_set_style_bg_color(input_panel, lv_color_hex(0x182A48), 0);
     lv_obj_set_style_border_color(input_panel, lv_color_hex(0x3AAAF0), 0);
@@ -876,7 +958,7 @@ static void build_ui(void) {
     g_lvgl.status_label = lv_label_create(root);
     lv_obj_set_width(g_lvgl.status_label, lv_pct(100));
 
-    lv_label_set_text(footer, "TAB NEXT  ENTER OPEN/TOGGLE  123 PAGES  0 CLEAR");
+    lv_label_set_text(footer, "TAB NEXT  ENTER TOGGLE  D/E/I PAGE ACTIONS  123 PAGES  0 CLEAR");
     lv_obj_set_style_text_color(footer, lv_color_hex(0x9AB4D6), 0);
 
     if (g_lvgl.group != (lv_group_t *)0) {
@@ -885,6 +967,7 @@ static void build_ui(void) {
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_settings);
         lv_group_add_obj(g_lvgl.group, g_lvgl.settings_toggle);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_about);
+        lv_group_add_obj(g_lvgl.group, g_lvgl.about_toggle);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_clear);
         sync_group_focus();
     }
@@ -940,6 +1023,7 @@ bool tinyos_lvgl_init(const struct tinyos_boot_info *boot_info) {
     g_lvgl.active_page = TINYOS_LVGL_PAGE_HOME;
     g_lvgl.focused_target = TINYOS_LVGL_FOCUS_HOME_TOGGLE;
     g_lvgl.home_details = false;
+    g_lvgl.about_notes = false;
     g_lvgl.key_echo = true;
     copy_string(g_lvgl.last_key, TINYOS_LVGL_LAST_KEY_CAPACITY, "NONE");
     copy_string(g_lvgl.status, TINYOS_LVGL_STATUS_CAPACITY, "LVGL UI ACTIVE");
@@ -1041,6 +1125,13 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
         }
     }
 
+    if ((event->character == 'i') || (event->character == 'I')) {
+        if (g_lvgl.active_page == TINYOS_LVGL_PAGE_ABOUT) {
+            toggle_about_notes();
+            return;
+        }
+    }
+
     if (event->character == '\b') {
         if (input_text_length() == 0u) {
             set_status("INPUT ALREADY EMPTY");
@@ -1085,6 +1176,8 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
             toggle_key_echo();
         } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_HOME_TOGGLE) {
             toggle_home_details();
+        } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_ABOUT_TOGGLE) {
+            toggle_about_notes();
         } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_SETTINGS) {
             handle_action(TINYOS_LVGL_ACTION_SETTINGS);
         } else if (g_lvgl.focused_target == TINYOS_LVGL_FOCUS_ABOUT) {
