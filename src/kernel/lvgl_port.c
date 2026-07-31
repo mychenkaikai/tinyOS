@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "tinyos/arch.h"
+#include "tinyos/console.h"
 #include "tinyos/memory.h"
 
 #include "lv_init.h"
@@ -62,6 +63,7 @@ struct tinyos_lvgl_state {
     uint64_t last_arch_tick;
     uint8_t last_scancode;
     uint8_t active_page;
+    uint8_t focused_action;
     char last_key[TINYOS_LVGL_LAST_KEY_CAPACITY];
     char status[TINYOS_LVGL_STATUS_CAPACITY];
     struct tinyos_lvgl_key_event key_queue[TINYOS_LVGL_KEY_QUEUE_CAPACITY];
@@ -97,6 +99,7 @@ static struct tinyos_lvgl_state g_lvgl = {
     .last_arch_tick = 0u,
     .last_scancode = 0u,
     .active_page = TINYOS_LVGL_PAGE_HOME,
+    .focused_action = TINYOS_LVGL_ACTION_HOME,
     .last_key = "NONE",
     .status = "LVGL UI ACTIVE",
     .key_queue = {{0}},
@@ -234,6 +237,22 @@ static const char *page_name(uint8_t page) {
 
     if (page == TINYOS_LVGL_PAGE_ABOUT) {
         return "ABOUT";
+    }
+
+    return "HOME";
+}
+
+static const char *action_name(uint8_t action) {
+    if (action == TINYOS_LVGL_ACTION_SETTINGS) {
+        return "SETTINGS";
+    }
+
+    if (action == TINYOS_LVGL_ACTION_ABOUT) {
+        return "ABOUT";
+    }
+
+    if (action == TINYOS_LVGL_ACTION_CLEAR) {
+        return "CLEAR";
     }
 
     return "HOME";
@@ -389,6 +408,76 @@ static void keypad_read(lv_indev_t *indev, lv_indev_data_t *data) {
     data->continue_reading = g_lvgl.key_count > 0u;
 }
 
+static lv_obj_t *action_button(enum tinyos_lvgl_action action) {
+    if (action == TINYOS_LVGL_ACTION_SETTINGS) {
+        return g_lvgl.button_settings;
+    }
+
+    if (action == TINYOS_LVGL_ACTION_ABOUT) {
+        return g_lvgl.button_about;
+    }
+
+    if (action == TINYOS_LVGL_ACTION_CLEAR) {
+        return g_lvgl.button_clear;
+    }
+
+    return g_lvgl.button_home;
+}
+
+static enum tinyos_lvgl_action next_action(enum tinyos_lvgl_action action) {
+    if (action == TINYOS_LVGL_ACTION_SETTINGS) {
+        return TINYOS_LVGL_ACTION_ABOUT;
+    }
+
+    if (action == TINYOS_LVGL_ACTION_ABOUT) {
+        return TINYOS_LVGL_ACTION_CLEAR;
+    }
+
+    if (action == TINYOS_LVGL_ACTION_CLEAR) {
+        return TINYOS_LVGL_ACTION_HOME;
+    }
+
+    return TINYOS_LVGL_ACTION_SETTINGS;
+}
+
+static uint32_t input_text_length(void) {
+    if (g_lvgl.input_box == (lv_obj_t *)0) {
+        return 0u;
+    }
+
+    return string_length(lv_textarea_get_text(g_lvgl.input_box));
+}
+
+static void log_ui_state(const char *event_name, const char *detail) {
+    console_write("[lvgl] ");
+    console_write(event_name);
+    console_write("=");
+    console_write(detail);
+    console_write(" page=");
+    console_write(page_name(g_lvgl.active_page));
+    console_write(" focus=");
+    console_write(action_name(g_lvgl.focused_action));
+    console_write(" key_echo=");
+    console_write(g_lvgl.key_echo ? "ON" : "OFF");
+    console_write(" input_len=");
+    console_write_u64((uint64_t)input_text_length());
+    console_write(" status=");
+    console_write_line(g_lvgl.status);
+}
+
+static void sync_group_focus(void) {
+    lv_obj_t *button;
+
+    if (g_lvgl.group == (lv_group_t *)0) {
+        return;
+    }
+
+    button = action_button((enum tinyos_lvgl_action)g_lvgl.focused_action);
+    if (button != (lv_obj_t *)0) {
+        lv_group_focus_obj(button);
+    }
+}
+
 static void update_page_focus(void) {
     if (g_lvgl.button_home == (lv_obj_t *)0) {
         return;
@@ -423,7 +512,7 @@ static void update_content_labels(void) {
         lv_label_set_text(g_lvgl.content_title, "SETTINGS");
         append_string(body, (uint32_t)sizeof(body), "KEY ECHO: ");
         append_string(body, (uint32_t)sizeof(body), g_lvgl.key_echo ? "ON" : "OFF");
-        append_string(body, (uint32_t)sizeof(body), "\nPRESS 2 OR ENTER ON SETTINGS TO TOGGLE");
+        append_string(body, (uint32_t)sizeof(body), "\nPRESS E TO TOGGLE KEY ECHO");
         append_string(body, (uint32_t)sizeof(body), "\nTAB MOVES BUTTON FOCUS");
         append_string(body, (uint32_t)sizeof(body), "\n0 OR C CLEARS THE INPUT BOX");
     } else if (g_lvgl.active_page == TINYOS_LVGL_PAGE_ABOUT) {
@@ -487,23 +576,40 @@ static void clear_input_box(void) {
     }
 }
 
+static void activate_page(uint8_t page, enum tinyos_lvgl_action focus_action, const char *status) {
+    g_lvgl.active_page = page;
+    g_lvgl.focused_action = (uint8_t)focus_action;
+    set_status(status);
+    sync_group_focus();
+    update_content_labels();
+}
+
+static void toggle_key_echo(void) {
+    g_lvgl.active_page = TINYOS_LVGL_PAGE_SETTINGS;
+    g_lvgl.focused_action = TINYOS_LVGL_ACTION_SETTINGS;
+    g_lvgl.key_echo = !g_lvgl.key_echo;
+    set_status(g_lvgl.key_echo ? "KEY ECHO ENABLED" : "KEY ECHO DISABLED");
+    sync_group_focus();
+    update_content_labels();
+    log_ui_state("action", "TOGGLE_KEY_ECHO");
+}
+
 static void handle_action(enum tinyos_lvgl_action action) {
     if (action == TINYOS_LVGL_ACTION_SETTINGS) {
-        g_lvgl.active_page = TINYOS_LVGL_PAGE_SETTINGS;
-        g_lvgl.key_echo = !g_lvgl.key_echo;
-        set_status(g_lvgl.key_echo ? "KEY ECHO ENABLED" : "KEY ECHO DISABLED");
+        activate_page(TINYOS_LVGL_PAGE_SETTINGS, TINYOS_LVGL_ACTION_SETTINGS, "SETTINGS PAGE ACTIVE");
     } else if (action == TINYOS_LVGL_ACTION_ABOUT) {
-        g_lvgl.active_page = TINYOS_LVGL_PAGE_ABOUT;
-        set_status("ABOUT PAGE ACTIVE");
+        activate_page(TINYOS_LVGL_PAGE_ABOUT, TINYOS_LVGL_ACTION_ABOUT, "ABOUT PAGE ACTIVE");
     } else if (action == TINYOS_LVGL_ACTION_CLEAR) {
+        g_lvgl.focused_action = TINYOS_LVGL_ACTION_CLEAR;
         clear_input_box();
         set_status("INPUT CLEARED");
+        sync_group_focus();
+        update_content_labels();
     } else {
-        g_lvgl.active_page = TINYOS_LVGL_PAGE_HOME;
-        set_status("HOME PAGE ACTIVE");
+        activate_page(TINYOS_LVGL_PAGE_HOME, TINYOS_LVGL_ACTION_HOME, "HOME PAGE ACTIVE");
     }
 
-    update_content_labels();
+    log_ui_state("action", action_name((uint8_t)action));
 }
 
 static void button_event_cb(lv_event_t *event) {
@@ -647,7 +753,7 @@ static void build_ui(void) {
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_settings);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_about);
         lv_group_add_obj(g_lvgl.group, g_lvgl.button_clear);
-        lv_group_focus_obj(g_lvgl.button_home);
+        sync_group_focus();
     }
 
     update_content_labels();
@@ -719,6 +825,7 @@ bool tinyos_lvgl_init(const struct tinyos_boot_info *boot_info) {
     g_lvgl.last_arch_tick = current_ticks();
     g_lvgl.last_scancode = 0u;
     g_lvgl.active_page = TINYOS_LVGL_PAGE_HOME;
+    g_lvgl.focused_action = TINYOS_LVGL_ACTION_HOME;
     g_lvgl.key_echo = true;
     copy_string(g_lvgl.last_key, TINYOS_LVGL_LAST_KEY_CAPACITY, "NONE");
     copy_string(g_lvgl.status, TINYOS_LVGL_STATUS_CAPACITY, "LVGL UI ACTIVE");
@@ -818,10 +925,22 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
         return;
     }
 
+    if ((event->character == 'e') || (event->character == 'E')) {
+        if (g_lvgl.active_page == TINYOS_LVGL_PAGE_SETTINGS) {
+            toggle_key_echo();
+            return;
+        }
+    }
+
     if (event->character == '\b') {
-        lv_textarea_delete_char(g_lvgl.input_box);
-        set_status("INPUT ERASED");
+        if (input_text_length() == 0u) {
+            set_status("INPUT ALREADY EMPTY");
+        } else {
+            lv_textarea_delete_char(g_lvgl.input_box);
+            set_status("INPUT ERASED");
+        }
         update_content_labels();
+        log_ui_state("input", "BACKSPACE");
         return;
     }
 
@@ -831,14 +950,24 @@ void tinyos_lvgl_handle_input_event(const struct input_event *event) {
         lv_textarea_add_text(g_lvgl.input_box, text);
         set_status("INPUT UPDATED");
         update_content_labels();
+        log_ui_state("input", "APPEND");
         return;
     }
 
     mapped_key = map_key(event);
     if (mapped_key != 0u) {
         if (queue_key_event(mapped_key, LV_INDEV_STATE_PRESSED)) {
-            set_status((mapped_key == LV_KEY_NEXT) ? "FOCUS MOVED" : "BUTTON ACTIVATED");
+            if (mapped_key == LV_KEY_NEXT) {
+                g_lvgl.focused_action = (uint8_t)next_action((enum tinyos_lvgl_action)g_lvgl.focused_action);
+                set_status("FOCUS MOVED");
+                update_content_labels();
+                log_ui_state("focus", action_name(g_lvgl.focused_action));
+                return;
+            }
+
+            set_status("BUTTON ACTIVATED");
             update_content_labels();
+            log_ui_state("input", "ENTER");
         }
         return;
     }
