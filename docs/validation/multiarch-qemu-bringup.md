@@ -60,6 +60,14 @@ make check-multiarch-preflight
 ```
 
 ```bash
+make check-multiarch-host
+```
+
+```bash
+make check-selftest
+```
+
+```bash
 make build-aarch64
 make run-aarch64
 make check-aarch64
@@ -82,6 +90,16 @@ Expected tools:
 
 `make check-multiarch-preflight` reports which pieces are available in the
 current environment before the architecture-specific checks are attempted.
+
+`make check-multiarch-host` only needs the host `gcc`. It runs the real shared
+kernel with stub `aarch64` and `riscv64` arch/platform registrations so the
+generic allocator, input path, event loop, and heartbeat logging can still be
+validated before the cross compiler and `QEMU` runtimes are installed.
+
+`make check-selftest` is the top-level closure command. It runs the current
+`x86_64` UI regression, the baseline regression, the host smoke checks, the
+tooling preflight, and conditionally the `QEMU` checks for `aarch64` and
+`riscv64` when the required tools are present.
 
 ## Expected Runtime Evidence
 
@@ -106,6 +124,7 @@ The prepared `riscv64` check expects:
 ## Status Discipline
 
 - `x86_64 + UEFI + LVGL`: verified
+- `aarch64/riscv64` shared kernel on host: verified by `make check-multiarch-host`
 - `aarch64 virt`: prepared, not verified until both the cross compiler and
   `QEMU` runtime are present
 - `riscv64 virt`: prepared, not verified until both the cross compiler and

@@ -27,5 +27,6 @@ check_tool qemu-system-aarch64 "aarch64 qemu runtime"
 check_tool qemu-system-riscv64 "riscv64 qemu runtime"
 check_tool aarch64-linux-gnu-gcc "aarch64 cross compiler"
 check_tool riscv64-linux-gnu-gcc "riscv64 cross compiler"
+check_tool gcc "host compiler for shared-kernel smoke checks"
 
 printf '== multiarch qemu preflight complete ==\n'

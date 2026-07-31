@@ -59,7 +59,7 @@ static void halt_forever(void) {
 
 // #region debug-point B:kernel-main-entry
 static void debugcon_write(char marker) {
-#if defined(__x86_64__)
+#if defined(__x86_64__) && !defined(TINYOS_HOSTED_TEST)
     __asm__ volatile ("outb %0, %1" : : "a"(marker), "Nd"((uint16_t)0x402));
 #else
     (void)marker;

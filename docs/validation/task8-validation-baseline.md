@@ -70,8 +70,9 @@ with a concrete record in
   `docs/validation/multiarch-qemu-bringup.md`,
   `arch/aarch64/README.md`, `arch/riscv64/README.md`,
   `platform/aarch64_virt/README.md`, `platform/riscv64_virt/README.md`,
-  `scripts/check_multiarch_preflight.sh`, `scripts/check_aarch64_virt.sh` and
-  `scripts/check_riscv64_virt.sh`
+  `scripts/check_multiarch_preflight.sh`, `scripts/check_multiarch_host_smoke.sh`,
+  `scripts/check_aarch64_virt.sh`, `scripts/check_riscv64_virt.sh` and
+  `scripts/check_selftest.sh`
   exist
 - Manual evidence: reviewers can trace the documented replacement boundary to
   `boot/`, `arch/` and `platform/`

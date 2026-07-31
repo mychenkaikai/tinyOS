@@ -3,7 +3,7 @@ IMAGE := $(BUILD_DIR)/tinyos-x86_64.img
 EFI_LOADER := $(BUILD_DIR)/esp/EFI/BOOT/BOOTX64.EFI
 KERNEL_BIN := $(BUILD_DIR)/KERNEL.BIN
 
-.PHONY: all build build-vbox build-aarch64 build-riscv64 run run-aarch64 run-riscv64 check-baseline check-ui check-image check-vbox check-aarch64 check-riscv64 check-multiarch-preflight clean
+.PHONY: all build build-vbox build-aarch64 build-riscv64 run run-aarch64 run-riscv64 check-baseline check-ui check-image check-vbox check-aarch64 check-riscv64 check-multiarch-preflight check-multiarch-host check-selftest clean
 
 all: build
 
@@ -42,6 +42,12 @@ check-riscv64:
 
 check-multiarch-preflight:
 	./scripts/check_multiarch_preflight.sh
+
+check-multiarch-host:
+	./scripts/check_multiarch_host_smoke.sh
+
+check-selftest:
+	./scripts/check_selftest.sh
 
 check-image: build
 	python3 ./scripts/check_uefi_image_layout.py "$(IMAGE)" "$(EFI_LOADER)" "$(KERNEL_BIN)"

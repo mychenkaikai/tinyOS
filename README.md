@@ -147,6 +147,18 @@ Check cross-architecture tooling availability:
 make check-multiarch-preflight
 ```
 
+Run the shared-kernel host smoke checks:
+
+```bash
+make check-multiarch-host
+```
+
+Run the full self-test closure for the current environment:
+
+```bash
+make check-selftest
+```
+
 Prepared cross-architecture build and run entry points:
 
 ```bash
@@ -162,6 +174,17 @@ make check-riscv64
 These targets build a minimal serial-only kernel for `QEMU virt`, route logging
 through the platform console backend, and expect the shared allocator, event
 loop and heartbeat path to come up without any `x86_64`-specific code.
+
+`make check-multiarch-host` complements those targets when cross toolchains are
+not installed. It runs the real shared kernel on the host with stubbed
+`aarch64` and `riscv64` arch/platform objects, injects input events, and checks
+for the expected serial evidence from `kernel_main`, the input path, and the
+heartbeat task.
+
+`make check-selftest` runs the current `x86_64` UI and baseline checks, the
+multiarch host smoke path, the multiarch preflight, and automatically folds in
+the `aarch64/riscv64` `QEMU` checks when both the matching cross compiler and
+runtime are available.
 
 Prepare a `VirtualBox` disk image:
 
@@ -201,6 +224,8 @@ Current visual outcome on the framebuffer:
 - Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`, `VirtualBox UEFI`
 - Prepared but not verified in this environment: `aarch64 virt` and
   `riscv64 virt` serial bring-up targets plus matching `make check-*` scripts
+- Verified in this environment without cross toolchains: shared-kernel
+  `aarch64/riscv64` host smoke path via `make check-multiarch-host`
 - Prepared but not yet verified: real-hardware USB boot flow
 - Not yet claimed: `legacy BIOS`, `VMware`, `Hyper-V`, real hardware success
 - Boot status source of truth: [x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md)
