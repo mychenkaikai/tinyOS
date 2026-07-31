@@ -518,6 +518,15 @@ static void hide_page_controls(void) {
     }
 }
 
+static void show_page_control(lv_obj_t *control, lv_obj_t *hint) {
+    if (control != (lv_obj_t *)0) {
+        lv_obj_remove_flag(control, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (hint != (lv_obj_t *)0) {
+        lv_obj_remove_flag(hint, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
 static void log_ui_state(const char *event_name, const char *detail) {
     console_write("[lvgl] ");
     console_write(event_name);
@@ -570,6 +579,64 @@ static void update_page_focus(void) {
     lv_obj_add_state(g_lvgl.button_home, LV_STATE_CHECKED);
 }
 
+static void update_settings_page(char *body, uint32_t capacity) {
+    lv_label_set_text(g_lvgl.content_title, "SETTINGS");
+    append_string(body, capacity, "SETTINGS NOW HAS A PAGE CONTROL.");
+    append_string(body, capacity, "\nTAB TO THE TOGGLE BUTTON AND PRESS ENTER.");
+    append_string(body, capacity, "\nE STILL WORKS AS A DIRECT HOTKEY.");
+    append_string(body, capacity, "\n0 OR C CLEARS THE INPUT BOX.");
+    show_page_control(g_lvgl.settings_toggle, g_lvgl.settings_hint);
+    if (g_lvgl.settings_toggle_label != (lv_obj_t *)0) {
+        lv_label_set_text_fmt(g_lvgl.settings_toggle_label, "KEY ECHO: %s", g_lvgl.key_echo ? "ON" : "OFF");
+    }
+    if (g_lvgl.settings_hint != (lv_obj_t *)0) {
+        lv_label_set_text(g_lvgl.settings_hint, "ENTER TO TOGGLE  TAB FOR NAVIGATION");
+    }
+}
+
+static void update_about_page(char *body, uint32_t capacity) {
+    lv_label_set_text(g_lvgl.content_title, "ABOUT");
+    append_string(body, capacity, "LVGL V9 IS NOW DRIVING THE UEFI UI.");
+    append_string(body, capacity, "\nDISPLAY FLUSH, KEYBOARD INPUT AND TIMER");
+    append_string(body, capacity, "\nARE WIRED INTO THE KERNEL EVENT LOOP.");
+    append_string(body, capacity, "\nTHE OLD BUILTIN FRAMEBUFFER UI REMAINS");
+    append_string(body, capacity, "\nAS THE FALLBACK PATH.");
+    append_string(body, capacity, "\nI ALSO TOGGLES THE NOTES PANEL.");
+    if (g_lvgl.about_notes) {
+        append_string(body, capacity, "\nSERIAL LOGS NOW EXPOSE LVGL PAGE, FOCUS");
+        append_string(body, capacity, "\nAND CONTROL STATE FOR HEADLESS TESTS.");
+        append_string(body, capacity, "\nCHECK-UI DRIVES HOME, SETTINGS, ABOUT");
+        append_string(body, capacity, "\nAND CLEAR THROUGH THE SAME INPUT PATH.");
+    }
+    show_page_control(g_lvgl.about_toggle, g_lvgl.about_hint);
+    if (g_lvgl.about_hint != (lv_obj_t *)0) {
+        lv_label_set_text(g_lvgl.about_hint, "ENTER OR I TO TOGGLE SYSTEM NOTES");
+    }
+    if (g_lvgl.about_toggle_label != (lv_obj_t *)0) {
+        lv_label_set_text_fmt(g_lvgl.about_toggle_label, "SYSTEM NOTES: %s", g_lvgl.about_notes ? "ON" : "OFF");
+    }
+}
+
+static void update_home_page(char *body, uint32_t capacity) {
+    lv_label_set_text(g_lvgl.content_title, "DASHBOARD");
+    append_string(body, capacity, "UEFI GOP FRAMEBUFFER ACTIVE");
+    append_string(body, capacity, "\nLVGL SW RENDERER ACTIVE");
+    append_string(body, capacity, g_lvgl.home_details ? "\nDETAIL MODE ENABLED" : "\nDETAIL MODE DISABLED");
+    append_string(body, capacity, "\nHOTKEYS: 1 HOME  2 SETTINGS  3 ABOUT");
+    append_string(body, capacity, "\nTAB NEXT  ENTER OPEN/TOGGLE  0 CLEAR");
+    if (g_lvgl.home_details) {
+        append_string(body, capacity, "\nBOOT PATH: UEFI GOP + LVGL");
+        append_string(body, capacity, "\nINPUT PATH: PS/2 -> QUEUE -> UI");
+    }
+    show_page_control(g_lvgl.home_toggle, g_lvgl.home_hint);
+    if (g_lvgl.home_hint != (lv_obj_t *)0) {
+        lv_label_set_text(g_lvgl.home_hint, "ENTER OR D TO TOGGLE HOME DETAILS");
+    }
+    if (g_lvgl.home_toggle_label != (lv_obj_t *)0) {
+        lv_label_set_text_fmt(g_lvgl.home_toggle_label, "DETAIL MODE: %s", g_lvgl.home_details ? "ON" : "OFF");
+    }
+}
+
 static void update_content_labels(void) {
     char body[TINYOS_LVGL_PAGE_TEXT_CAPACITY];
 
@@ -580,68 +647,11 @@ static void update_content_labels(void) {
     copy_string(body, (uint32_t)sizeof(body), "");
     hide_page_controls();
     if (g_lvgl.active_page == TINYOS_LVGL_PAGE_SETTINGS) {
-        lv_label_set_text(g_lvgl.content_title, "SETTINGS");
-        append_string(body, (uint32_t)sizeof(body), "SETTINGS NOW HAS A PAGE CONTROL.");
-        append_string(body, (uint32_t)sizeof(body), "\nTAB TO THE TOGGLE BUTTON AND PRESS ENTER.");
-        append_string(body, (uint32_t)sizeof(body), "\nE STILL WORKS AS A DIRECT HOTKEY.");
-        append_string(body, (uint32_t)sizeof(body), "\n0 OR C CLEARS THE INPUT BOX.");
-        if (g_lvgl.settings_toggle != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.settings_toggle, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (g_lvgl.settings_hint != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.settings_hint, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (g_lvgl.settings_toggle_label != (lv_obj_t *)0) {
-            lv_label_set_text_fmt(g_lvgl.settings_toggle_label, "KEY ECHO: %s", g_lvgl.key_echo ? "ON" : "OFF");
-        }
-        if (g_lvgl.settings_hint != (lv_obj_t *)0) {
-            lv_label_set_text(g_lvgl.settings_hint, "ENTER TO TOGGLE  TAB FOR NAVIGATION");
-        }
+        update_settings_page(body, (uint32_t)sizeof(body));
     } else if (g_lvgl.active_page == TINYOS_LVGL_PAGE_ABOUT) {
-        lv_label_set_text(g_lvgl.content_title, "ABOUT");
-        append_string(body, (uint32_t)sizeof(body), "LVGL V9 IS NOW DRIVING THE UEFI UI.");
-        append_string(body, (uint32_t)sizeof(body), "\nDISPLAY FLUSH, KEYBOARD INPUT AND TIMER");
-        append_string(body, (uint32_t)sizeof(body), "\nARE WIRED INTO THE KERNEL EVENT LOOP.");
-        append_string(body, (uint32_t)sizeof(body), "\nTHE OLD BUILTIN FRAMEBUFFER UI REMAINS");
-        append_string(body, (uint32_t)sizeof(body), "\nAS THE FALLBACK PATH.");
-        append_string(body, (uint32_t)sizeof(body), "\nI ALSO TOGGLES THE NOTES PANEL.");
-        if (g_lvgl.about_notes) {
-            append_string(body, (uint32_t)sizeof(body), "\nSERIAL LOGS NOW EXPOSE LVGL PAGE, FOCUS");
-            append_string(body, (uint32_t)sizeof(body), "\nAND CONTROL STATE FOR HEADLESS TESTS.");
-            append_string(body, (uint32_t)sizeof(body), "\nCHECK-UI DRIVES HOME, SETTINGS, ABOUT");
-            append_string(body, (uint32_t)sizeof(body), "\nAND CLEAR THROUGH THE SAME INPUT PATH.");
-        }
-        if (g_lvgl.about_toggle != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.about_toggle, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (g_lvgl.about_hint != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.about_hint, LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text(g_lvgl.about_hint, "ENTER OR I TO TOGGLE SYSTEM NOTES");
-        }
-        if (g_lvgl.about_toggle_label != (lv_obj_t *)0) {
-            lv_label_set_text_fmt(g_lvgl.about_toggle_label, "SYSTEM NOTES: %s", g_lvgl.about_notes ? "ON" : "OFF");
-        }
+        update_about_page(body, (uint32_t)sizeof(body));
     } else {
-        lv_label_set_text(g_lvgl.content_title, "DASHBOARD");
-        append_string(body, (uint32_t)sizeof(body), "UEFI GOP FRAMEBUFFER ACTIVE");
-        append_string(body, (uint32_t)sizeof(body), "\nLVGL SW RENDERER ACTIVE");
-        append_string(body, (uint32_t)sizeof(body), g_lvgl.home_details ? "\nDETAIL MODE ENABLED" : "\nDETAIL MODE DISABLED");
-        append_string(body, (uint32_t)sizeof(body), "\nHOTKEYS: 1 HOME  2 SETTINGS  3 ABOUT");
-        append_string(body, (uint32_t)sizeof(body), "\nTAB NEXT  ENTER OPEN/TOGGLE  0 CLEAR");
-        if (g_lvgl.home_details) {
-            append_string(body, (uint32_t)sizeof(body), "\nBOOT PATH: UEFI GOP + LVGL");
-            append_string(body, (uint32_t)sizeof(body), "\nINPUT PATH: PS/2 -> QUEUE -> UI");
-        }
-        if (g_lvgl.home_toggle != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.home_toggle, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (g_lvgl.home_hint != (lv_obj_t *)0) {
-            lv_obj_remove_flag(g_lvgl.home_hint, LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text(g_lvgl.home_hint, "ENTER OR D TO TOGGLE HOME DETAILS");
-        }
-        if (g_lvgl.home_toggle_label != (lv_obj_t *)0) {
-            lv_label_set_text_fmt(g_lvgl.home_toggle_label, "DETAIL MODE: %s", g_lvgl.home_details ? "ON" : "OFF");
-        }
+        update_home_page(body, (uint32_t)sizeof(body));
     }
 
     lv_label_set_text(g_lvgl.content_body, body);
