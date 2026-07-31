@@ -1,42 +1,24 @@
 #include "tinyos/console.h"
 #include "tinyos/display.h"
-#include "tinyos/port_io.h"
-
-#define COM1_PORT 0x3F8u
-#define SERIAL_READY_POLL_LIMIT 100000u
+#include "tinyos/platform.h"
 
 static bool g_console_display_mirror = true;
+static const struct tinyos_console_ops *current_console(void) {
+    const struct tinyos_platform_ops *platform = tinyos_platform_current();
 
-static void io_wait(void) {
-    outb(0x80u, 0u);
-}
-
-static void serial_init(void) {
-    outb(COM1_PORT + 1u, 0x00u);
-    outb(COM1_PORT + 3u, 0x80u);
-    outb(COM1_PORT + 0u, 0x03u);
-    outb(COM1_PORT + 1u, 0x00u);
-    outb(COM1_PORT + 3u, 0x03u);
-    outb(COM1_PORT + 2u, 0xC7u);
-    outb(COM1_PORT + 4u, 0x0Bu);
-    io_wait();
-}
-
-static void serial_write_char(char ch) {
-    uint32_t spins = 0u;
-
-    while ((inb(COM1_PORT + 5u) & 0x20u) == 0u) {
-        ++spins;
-        if (spins >= SERIAL_READY_POLL_LIMIT) {
-            break;
-        }
+    if (platform == (const struct tinyos_platform_ops *)0) {
+        return (const struct tinyos_console_ops *)0;
     }
 
-    outb(COM1_PORT, (uint8_t)ch);
+    return &platform->console;
 }
 
 void console_init(void) {
-    serial_init();
+    const struct tinyos_console_ops *console = current_console();
+
+    if ((console != (const struct tinyos_console_ops *)0) && (console->init != (void *)0)) {
+        console->init();
+    }
 }
 
 void console_set_display_mirror(bool enabled) {
@@ -44,11 +26,18 @@ void console_set_display_mirror(bool enabled) {
 }
 
 void console_write_char(char ch) {
+    const struct tinyos_console_ops *console = current_console();
+
     if (ch == '\n') {
-        serial_write_char('\r');
+        if ((console != (const struct tinyos_console_ops *)0) && (console->write_char != (void *)0)) {
+            console->write_char('\r');
+        }
     }
 
-    serial_write_char(ch);
+    if ((console != (const struct tinyos_console_ops *)0) && (console->write_char != (void *)0)) {
+        console->write_char(ch);
+    }
+
     if (g_console_display_mirror) {
         display_write_char(ch);
     }
