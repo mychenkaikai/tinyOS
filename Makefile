@@ -7,9 +7,7 @@ KERNEL_BIN := $(BUILD_DIR)/KERNEL.BIN
 
 all: build
 
-build: $(IMAGE)
-
-$(IMAGE):
+build:
 	./scripts/build_x86_64.sh
 
 build-vbox: build
