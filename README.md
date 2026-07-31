@@ -18,6 +18,7 @@ boundaries, and a GOP framebuffer `LVGL` GUI path:
 - retained platform backends for the earlier `x86_64` text/keyboard path while the `UEFI` route is being brought forward
 - reserved `arch/platform` interface headers and `ARM64/RISC-V` port placeholders
 - a documented second-phase validation standard for `ARM64 virt` and `RISC-V virt`
+- prepared `aarch64` and `riscv64` serial-only `QEMU virt` bring-up targets that reuse the shared kernel event loop
 - repeatable image build, `QEMU + OVMF` launch scripts and real-hardware prep notes
 
 ## Repository Layout
@@ -140,6 +141,28 @@ This checks the `MBR`, `ESP/FAT16`, mirrored FAT tables, directory entries, and
 verifies that the packed `BOOTX64.EFI` and `KERNEL.BIN` match the build
 artifacts byte-for-byte.
 
+Check cross-architecture tooling availability:
+
+```bash
+make check-multiarch-preflight
+```
+
+Prepared cross-architecture build and run entry points:
+
+```bash
+make build-aarch64
+make run-aarch64
+make check-aarch64
+
+make build-riscv64
+make run-riscv64
+make check-riscv64
+```
+
+These targets build a minimal serial-only kernel for `QEMU virt`, route logging
+through the platform console backend, and expect the shared allocator, event
+loop and heartbeat path to come up without any `x86_64`-specific code.
+
 Prepare a `VirtualBox` disk image:
 
 ```bash
@@ -176,8 +199,11 @@ Current visual outcome on the framebuffer:
 ## Current Boundary
 
 - Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`, `VirtualBox UEFI`
+- Prepared but not verified in this environment: `aarch64 virt` and
+  `riscv64 virt` serial bring-up targets plus matching `make check-*` scripts
 - Prepared but not yet verified: real-hardware USB boot flow
 - Not yet claimed: `legacy BIOS`, `VMware`, `Hyper-V`, real hardware success
 - Boot status source of truth: [x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md)
+- Cross-architecture bring-up notes: [multiarch-qemu-bringup.md](file:///home/cyk/work/tinyOS/docs/validation/multiarch-qemu-bringup.md)
 - VirtualBox bring-up guide: [x86_64-uefi-virtualbox.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-virtualbox.md)
 - Next hardware step: follow [x86_64-uefi-real-hardware.md](file:///home/cyk/work/tinyOS/docs/boot/x86_64-uefi-real-hardware.md) and fill [x86_64-uefi-hardware-smoke-template.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-hardware-smoke-template.md)

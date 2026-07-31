@@ -1,7 +1,7 @@
-# aarch64 Port Placeholder
+# aarch64 Port
 
-This directory reserves the architecture-owned code required by the future
-`ARM64 virt` bring-up.
+This directory now contains the first architecture-owned pieces for the
+serial-only `ARM64 virt` bring-up.
 
 ## Owned By `arch/aarch64`
 
@@ -17,9 +17,15 @@ This directory reserves the architecture-owned code required by the future
 - Most of `src/kernel/main.c` after boot strings and idle calls are routed
   through `tinyos_arch_current()` and `tinyos_platform_current()`
 
-## Expected Future Files
+## Current Files
 
-- `kernel_entry.S`
-- `exceptions.S`
-- `linker.ld`
-- `interrupts_aarch64.c`
+- `arch.c`: current fake-tick architecture backend used to validate the shared
+  event loop before a real timer driver lands
+- `kernel_entry.S`: bare-metal entry, stack setup and `.bss` clear path
+- `linker.ld`: fixed `virt` RAM placement for the serial bring-up image
+
+## Next Step
+
+Replace the fake tick path with a real generic timer interrupt backend while
+keeping `src/kernel/memory.c`, `src/kernel/event_loop.c` and `src/kernel/main.c`
+shared.

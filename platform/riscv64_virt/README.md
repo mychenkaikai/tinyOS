@@ -1,7 +1,7 @@
-# RISC-V Virt Platform Placeholder
+# RISC-V Virt Platform
 
-This folder reserves the board or machine specific pieces for the future
-`QEMU virt` based `riscv64` port.
+This folder now owns the machine-specific pieces for the prepared serial-only
+`QEMU virt` based `riscv64` bring-up.
 
 ## Expected Ownership
 
@@ -14,3 +14,13 @@ This folder reserves the board or machine specific pieces for the future
 
 The reusable kernel should only see the `tinyos/platform.h` surface.
 Machine addresses, UART choices and `virt` quirks stay in this directory.
+
+## Current Files
+
+- `src/platform/riscv64/platform.c`: current UART-backed console path, boot
+  heap limit, and headless platform registration
+
+## Next Step
+
+Keep the machine map here, then add real timer and trap-controller discovery
+without pushing `virt`-specific details into the shared kernel.

@@ -105,7 +105,7 @@ measured against the following standard.
 ## Suggested Bring-Up Evidence
 
 - `x86_64`: existing `make run` log stays green
-- `aarch64`: QEMU `virt` boot log reaches the same allocator and heartbeat lines
-- `riscv64`: QEMU `virt` boot log reaches the same allocator and heartbeat lines
+- `aarch64`: `make check-aarch64` reaches the same allocator and heartbeat lines
+- `riscv64`: `make check-riscv64` reaches the same allocator and heartbeat lines
 - A reviewer can diff a new port and see that most changes stay in
   `boot/`, `arch/` and `platform/`
