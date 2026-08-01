@@ -151,6 +151,7 @@ Run the shared-kernel host smoke checks:
 
 ```bash
 make check-multiarch-host
+make check-multiarch-host-gui
 ```
 
 Run the full self-test closure for the current environment:
@@ -180,6 +181,11 @@ not installed. It runs the real shared kernel on the host with stubbed
 `aarch64` and `riscv64` arch/platform objects, injects input events, and checks
 for the expected serial evidence from `kernel_main`, the input path, and the
 heartbeat task.
+
+`make check-multiarch-host-gui` extends that closure to the shared text GUI
+path. It attaches a host display backend, drives `TAB / ENTER / X / CLEAR`
+through the generic input queue, and verifies the final rendered screen content
+for both `aarch64` and `riscv64`.
 
 `make check-selftest` runs the current `x86_64` UI and baseline checks, the
 multiarch host smoke path, the multiarch preflight, and automatically folds in
@@ -225,7 +231,8 @@ Current visual outcome on the framebuffer:
 - Prepared but not verified in this environment: `aarch64 virt` and
   `riscv64 virt` serial bring-up targets plus matching `make check-*` scripts
 - Verified in this environment without cross toolchains: shared-kernel
-  `aarch64/riscv64` host smoke path via `make check-multiarch-host`
+  `aarch64/riscv64` host smoke path via `make check-multiarch-host` and
+  `make check-multiarch-host-gui`
 - Prepared but not yet verified: real-hardware USB boot flow
 - Not yet claimed: `legacy BIOS`, `VMware`, `Hyper-V`, real hardware success
 - Boot status source of truth: [x86_64-uefi-boot-status.md](file:///home/cyk/work/tinyOS/docs/validation/x86_64-uefi-boot-status.md)

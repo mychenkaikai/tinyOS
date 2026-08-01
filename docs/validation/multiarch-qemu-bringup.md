@@ -61,6 +61,7 @@ make check-multiarch-preflight
 
 ```bash
 make check-multiarch-host
+make check-multiarch-host-gui
 ```
 
 ```bash
@@ -96,6 +97,11 @@ kernel with stub `aarch64` and `riscv64` arch/platform registrations so the
 generic allocator, input path, event loop, and heartbeat logging can still be
 validated before the cross compiler and `QEMU` runtimes are installed.
 
+`make check-multiarch-host-gui` adds a host display backend on top of that
+setup and verifies the shared text GUI path, including page switching, settings
+toggle behavior, input buffer clearing, and final screen contents for both
+architectures.
+
 `make check-selftest` is the top-level closure command. It runs the current
 `x86_64` UI regression, the baseline regression, the host smoke checks, the
 tooling preflight, and conditionally the `QEMU` checks for `aarch64` and
@@ -124,7 +130,8 @@ The prepared `riscv64` check expects:
 ## Status Discipline
 
 - `x86_64 + UEFI + LVGL`: verified
-- `aarch64/riscv64` shared kernel on host: verified by `make check-multiarch-host`
+- `aarch64/riscv64` shared kernel on host: verified by
+  `make check-multiarch-host` and `make check-multiarch-host-gui`
 - `aarch64 virt`: prepared, not verified until both the cross compiler and
   `QEMU` runtime are present
 - `riscv64 virt`: prepared, not verified until both the cross compiler and

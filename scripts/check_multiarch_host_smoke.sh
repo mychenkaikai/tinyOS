@@ -62,7 +62,7 @@ require_log_line '\[input\] key#=1 .*char=tab' "AArch64 host smoke processed tab
 require_log_line '\[input\] key#=2 .*char=enter' "AArch64 host smoke processed enter input" "${LOG_AARCH64}"
 require_log_line '\[input\] key#=3 .*char=x' "AArch64 host smoke processed printable input" "${LOG_AARCH64}"
 require_log_line '\[event\] heartbeat=1 ' "AArch64 host smoke reached heartbeat" "${LOG_AARCH64}"
-require_log_line '\[host-smoke\] completed arch=aarch64 ticks=240 events=3' "AArch64 host smoke completed run" "${LOG_AARCH64}"
+require_log_line '\[host-smoke\] completed arch=aarch64 profile=headless ticks=240 events=3' "AArch64 host smoke completed run" "${LOG_AARCH64}"
 
 require_log_line 'tinyOS kernel bootstrap ready\.' "RISC-V host smoke reached kernel banner" "${LOG_RISCV64}"
 require_log_line 'Architecture: riscv64' "RISC-V host smoke reported architecture" "${LOG_RISCV64}"
@@ -73,6 +73,6 @@ require_log_line '\[input\] key#=1 .*char=tab' "RISC-V host smoke processed tab 
 require_log_line '\[input\] key#=2 .*char=enter' "RISC-V host smoke processed enter input" "${LOG_RISCV64}"
 require_log_line '\[input\] key#=3 .*char=x' "RISC-V host smoke processed printable input" "${LOG_RISCV64}"
 require_log_line '\[event\] heartbeat=1 ' "RISC-V host smoke reached heartbeat" "${LOG_RISCV64}"
-require_log_line '\[host-smoke\] completed arch=riscv64 ticks=240 events=3' "RISC-V host smoke completed run" "${LOG_RISCV64}"
+require_log_line '\[host-smoke\] completed arch=riscv64 profile=headless ticks=240 events=3' "RISC-V host smoke completed run" "${LOG_RISCV64}"
 
 printf '== multiarch host smoke passed: %d checks ==\n' "${PASS_COUNT}"

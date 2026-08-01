@@ -13,6 +13,8 @@
 
 #define HOST_EVENT_TASK_CAPACITY 8u
 #define HOST_EVENT_LOOP_MAX_TICKS 240u
+#define HOST_DISPLAY_WIDTH 80u
+#define HOST_DISPLAY_HEIGHT 25u
 
 extern void kernel_main(const struct tinyos_boot_info *boot_info);
 
@@ -20,12 +22,16 @@ uint8_t __kernel_end = 0u;
 
 static const char *g_selected_arch = "aarch64";
 static const char *g_selected_platform = "aarch64-host-smoke";
+static const char *g_selected_profile = "headless";
 static uint64_t g_host_ticks = 0u;
 static bool g_interrupts_ready = false;
 static bool g_interrupts_enabled = false;
 static struct event_task *g_tasks[HOST_EVENT_TASK_CAPACITY];
 static uint32_t g_task_count = 0u;
 static uint32_t g_injected_events = 0u;
+static char g_display_buffer[HOST_DISPLAY_HEIGHT][HOST_DISPLAY_WIDTH];
+static uint32_t g_display_cursor_row = 0u;
+static uint32_t g_display_cursor_col = 0u;
 
 static void host_console_init(void) {
 }
@@ -34,6 +40,77 @@ static void host_console_write_char(char ch) {
     putchar((int)(unsigned char)ch);
     fflush(stdout);
 }
+
+static void host_display_reset(void) {
+    uint32_t row;
+    uint32_t col;
+
+    for (row = 0u; row < HOST_DISPLAY_HEIGHT; ++row) {
+        for (col = 0u; col < HOST_DISPLAY_WIDTH; ++col) {
+            g_display_buffer[row][col] = ' ';
+        }
+    }
+
+    g_display_cursor_row = 0u;
+    g_display_cursor_col = 0u;
+}
+
+static void host_display_init(void) {
+    host_display_reset();
+}
+
+static void host_display_clear(void) {
+    host_display_reset();
+}
+
+static void host_display_write_char(char ch) {
+    if (ch == '\n') {
+        if (g_display_cursor_row + 1u < HOST_DISPLAY_HEIGHT) {
+            ++g_display_cursor_row;
+        }
+        g_display_cursor_col = 0u;
+        return;
+    }
+
+    if (g_display_cursor_col >= HOST_DISPLAY_WIDTH) {
+        if (g_display_cursor_row + 1u < HOST_DISPLAY_HEIGHT) {
+            ++g_display_cursor_row;
+        }
+        g_display_cursor_col = 0u;
+    }
+
+    if ((g_display_cursor_row < HOST_DISPLAY_HEIGHT) && (g_display_cursor_col < HOST_DISPLAY_WIDTH)) {
+        g_display_buffer[g_display_cursor_row][g_display_cursor_col] = ch;
+        ++g_display_cursor_col;
+    }
+}
+
+static bool host_display_dimensions(uint32_t *width, uint32_t *height) {
+    if ((width == NULL) || (height == NULL)) {
+        return false;
+    }
+
+    *width = HOST_DISPLAY_WIDTH;
+    *height = HOST_DISPLAY_HEIGHT;
+    return true;
+}
+
+static bool host_display_write_at(uint32_t row, uint32_t col, char ch) {
+    if ((row >= HOST_DISPLAY_HEIGHT) || (col >= HOST_DISPLAY_WIDTH)) {
+        return false;
+    }
+
+    g_display_buffer[row][col] = ch;
+    return true;
+}
+
+static const struct display_backend g_host_display_backend = {
+    .init = host_display_init,
+    .clear = host_display_clear,
+    .write_char = host_display_write_char,
+    .dimensions = host_display_dimensions,
+    .write_at = host_display_write_at
+};
 
 static void host_input_init(void) {
 }
@@ -122,7 +199,16 @@ static void configure_mode(const char *mode) {
     g_host_platform.boot_heap_limit = host_boot_heap_limit;
     g_host_platform.console = g_host_console_ops;
     g_host_platform.input = &g_host_input_backend;
-    g_host_platform.display = (const struct display_backend *)0;
+}
+
+static void configure_profile(const char *profile) {
+    if ((profile != NULL) && (strcmp(profile, "gui") == 0)) {
+        g_selected_profile = "gui";
+        g_host_platform.display = &g_host_display_backend;
+    } else {
+        g_selected_profile = "headless";
+        g_host_platform.display = (const struct display_backend *)0;
+    }
 }
 
 const struct tinyos_arch_ops *tinyos_arch_current(void) {
@@ -138,6 +224,9 @@ void platform_set_boot_info(const struct tinyos_boot_info *boot_info) {
 }
 
 void platform_init(void) {
+    if (g_host_platform.display != (const struct display_backend *)0) {
+        display_register_backend(g_host_platform.display);
+    }
     input_register_backend(&g_host_input_backend);
 }
 
@@ -183,11 +272,57 @@ static void inject_input_events_if_needed(void) {
     event.character = '\n';
     (void)input_push_event(&event);
 
+    if (strcmp(g_selected_profile, "gui") == 0) {
+        event.scancode = 0x1Cu;
+        event.character = '\n';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x2Du;
+        event.character = 'x';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x0Fu;
+        event.character = '\t';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x1Cu;
+        event.character = '\n';
+        (void)input_push_event(&event);
+
+        g_injected_events = 6u;
+        return;
+    }
+
     event.scancode = 0x2Du;
     event.character = 'x';
     (void)input_push_event(&event);
 
     g_injected_events = 3u;
+}
+
+static void dump_display_snapshot(void) {
+    uint32_t row;
+
+    if (strcmp(g_selected_profile, "gui") != 0) {
+        return;
+    }
+
+    for (row = 0u; row < HOST_DISPLAY_HEIGHT; ++row) {
+        int32_t last_non_space = (int32_t)HOST_DISPLAY_WIDTH - 1;
+
+        while ((last_non_space >= 0) && (g_display_buffer[row][(uint32_t)last_non_space] == ' ')) {
+            --last_non_space;
+        }
+
+        printf("[display] row=%02u text=", row);
+        if (last_non_space < 0) {
+            printf("\n");
+            continue;
+        }
+
+        fwrite(g_display_buffer[row], 1u, (size_t)last_non_space + 1u, stdout);
+        printf("\n");
+    }
 }
 
 void event_loop_run(void) {
@@ -210,8 +345,10 @@ void event_loop_run(void) {
         ++g_host_ticks;
     }
 
-    printf("[host-smoke] completed arch=%s ticks=%llu events=%u\n",
+    dump_display_snapshot();
+    printf("[host-smoke] completed arch=%s profile=%s ticks=%llu events=%u\n",
            g_selected_arch,
+           g_selected_profile,
            (unsigned long long)g_host_ticks,
            g_injected_events);
     exit(0);
@@ -233,6 +370,12 @@ int main(int argc, char **argv) {
         configure_mode(argv[1]);
     } else {
         configure_mode("aarch64");
+    }
+
+    if (argc > 2) {
+        configure_profile(argv[2]);
+    } else {
+        configure_profile("headless");
     }
 
     kernel_main(&boot_info);

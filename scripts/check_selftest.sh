@@ -27,6 +27,7 @@ maybe_run_qemu_check() {
 run_step "x86 UI regression" make -C "${ROOT_DIR}" check-ui
 run_step "x86 baseline regression" make -C "${ROOT_DIR}" check-baseline
 run_step "multiarch host smoke" make -C "${ROOT_DIR}" check-multiarch-host
+run_step "multiarch host gui smoke" make -C "${ROOT_DIR}" check-multiarch-host-gui
 run_step "multiarch preflight" make -C "${ROOT_DIR}" check-multiarch-preflight
 maybe_run_qemu_check aarch64-linux-gnu-gcc qemu-system-aarch64 "aarch64 qemu smoke" make -C "${ROOT_DIR}" check-aarch64
 maybe_run_qemu_check riscv64-linux-gnu-gcc qemu-system-riscv64 "riscv64 qemu smoke" make -C "${ROOT_DIR}" check-riscv64
