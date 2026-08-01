@@ -183,9 +183,9 @@ for the expected serial evidence from `kernel_main`, the input path, and the
 heartbeat task.
 
 `make check-multiarch-host-gui` extends that closure to the shared text GUI
-path. It attaches a host display backend, drives `TAB / ENTER / X / CLEAR`
-through the generic input queue, and verifies the final rendered screen content
-for both `aarch64` and `riscv64`.
+path. It attaches a host display backend, drives `ABOUT / SETTINGS / CLEAR`
+through the generic `3 / I / 2 / E / 0` hotkey path, and verifies the final
+rendered screen content for both `aarch64` and `riscv64`.
 
 `make check-selftest` runs the current `x86_64` UI and baseline checks, the
 multiarch host smoke path, the multiarch preflight, and automatically folds in

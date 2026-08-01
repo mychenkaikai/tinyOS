@@ -15,13 +15,15 @@
 enum gui_focus_target {
     GUI_FOCUS_HOME = 0,
     GUI_FOCUS_SETTINGS = 1,
-    GUI_FOCUS_CLEAR = 2,
-    GUI_FOCUS_COUNT = 3
+    GUI_FOCUS_ABOUT = 2,
+    GUI_FOCUS_CLEAR = 3,
+    GUI_FOCUS_COUNT = 4
 };
 
 enum gui_page {
     GUI_PAGE_HOME = 0,
-    GUI_PAGE_SETTINGS = 1
+    GUI_PAGE_SETTINGS = 1,
+    GUI_PAGE_ABOUT = 2
 };
 
 struct gui_state {
@@ -34,6 +36,7 @@ struct gui_state {
     uint8_t active_page;
     bool desktop_details;
     bool settings_key_echo;
+    bool about_notes;
     uint8_t last_scancode;
     char last_key[GUI_LAST_KEY_CAPACITY];
     char status_message[GUI_STATUS_CAPACITY];
@@ -51,6 +54,7 @@ static struct gui_state g_gui = {
     .active_page = GUI_PAGE_HOME,
     .desktop_details = false,
     .settings_key_echo = true,
+    .about_notes = false,
     .last_scancode = 0u,
     .last_key = "none",
     .status_message = "GUI waiting for keyboard input.",
@@ -147,12 +151,24 @@ static bool is_printable_ascii(char ch) {
 }
 
 static const char *page_name(uint8_t page) {
-    return (page == GUI_PAGE_SETTINGS) ? "SETTINGS" : "HOME";
+    if (page == GUI_PAGE_SETTINGS) {
+        return "SETTINGS";
+    }
+
+    if (page == GUI_PAGE_ABOUT) {
+        return "ABOUT";
+    }
+
+    return "HOME";
 }
 
 static const char *focus_name(uint8_t focus) {
     if (focus == GUI_FOCUS_SETTINGS) {
         return "SETTINGS";
+    }
+
+    if (focus == GUI_FOCUS_ABOUT) {
+        return "ABOUT";
     }
 
     if (focus == GUI_FOCUS_CLEAR) {
@@ -318,6 +334,17 @@ static void activate_focus(void) {
         return;
     }
 
+    if (g_gui.focus_index == GUI_FOCUS_ABOUT) {
+        if (g_gui.active_page == GUI_PAGE_ABOUT) {
+            g_gui.about_notes = !g_gui.about_notes;
+            set_status_message(g_gui.about_notes ? "About notes enabled." : "About notes disabled.");
+        } else {
+            g_gui.active_page = GUI_PAGE_ABOUT;
+            set_status_message("Switched to About page.");
+        }
+        return;
+    }
+
     g_gui.input_length = 0u;
     g_gui.input_buffer[0] = '\0';
     set_status_message("Demo input cleared.");
@@ -334,10 +361,11 @@ static void render_header(void) {
     draw_text(1u, 44u, "Ticks:");
     uint64_to_decimal(current_ticks(), ticks_text, (uint32_t)sizeof(ticks_text));
     draw_text(1u, 51u, ticks_text);
-    draw_text(2u, 2u, "Tab switch focus  Enter activate  Type text  Backspace delete");
+    draw_text(2u, 2u, "Tab switch focus  Enter activate  123 pages  0 clear  D/E/I toggle");
     draw_button(3u, 2u, "Home", g_gui.focus_index == GUI_FOCUS_HOME);
     draw_button(3u, 12u, "Settings", g_gui.focus_index == GUI_FOCUS_SETTINGS);
-    draw_button(3u, 27u, "Clear Input", g_gui.focus_index == GUI_FOCUS_CLEAR);
+    draw_button(3u, 27u, "About", g_gui.focus_index == GUI_FOCUS_ABOUT);
+    draw_button(3u, 37u, "Clear Input", g_gui.focus_index == GUI_FOCUS_CLEAR);
 }
 
 static void render_runtime_box(void) {
@@ -395,6 +423,19 @@ static void render_settings_page(uint32_t top, uint32_t height) {
     draw_text(top + 3u, 2u, "Console logs stay on serial while the screen is owned by the GUI.");
 }
 
+static void render_about_page(uint32_t top, uint32_t height) {
+    draw_box(top, 0u, g_gui.width, height, " About Demo ");
+    draw_text(top + 1u, 2u, "Use >About< + Enter or I to toggle shared notes.");
+    draw_text(top + 2u, 2u, "Notes:");
+    draw_text(top + 2u, 10u, g_gui.about_notes ? "enabled" : "disabled");
+    draw_text(top + 3u, 2u, "This text GUI now mirrors the shared page model.");
+
+    if (g_gui.about_notes && (height >= 7u)) {
+        draw_text(top + 5u, 2u, "note: host smoke validates the screen contents");
+        draw_text(top + 6u, 2u, "note: direct page hotkeys keep the same event path");
+    }
+}
+
 void gui_init(const struct tinyos_boot_info *boot_info) {
     uint32_t width = 0u;
     uint32_t height = 0u;
@@ -450,6 +491,56 @@ void gui_handle_input_event(const struct input_event *event) {
         return;
     }
 
+    if (event->character == '1') {
+        g_gui.active_page = GUI_PAGE_HOME;
+        g_gui.focus_index = GUI_FOCUS_HOME;
+        set_status_message("Hotkey switched to Home page.");
+        return;
+    }
+
+    if (event->character == '2') {
+        g_gui.active_page = GUI_PAGE_SETTINGS;
+        g_gui.focus_index = GUI_FOCUS_SETTINGS;
+        set_status_message("Hotkey switched to Settings page.");
+        return;
+    }
+
+    if (event->character == '3') {
+        g_gui.active_page = GUI_PAGE_ABOUT;
+        g_gui.focus_index = GUI_FOCUS_ABOUT;
+        set_status_message("Hotkey switched to About page.");
+        return;
+    }
+
+    if ((event->character == '0') || (event->character == 'c') || (event->character == 'C')) {
+        g_gui.focus_index = GUI_FOCUS_CLEAR;
+        g_gui.input_length = 0u;
+        g_gui.input_buffer[0] = '\0';
+        set_status_message("Demo input cleared.");
+        return;
+    }
+
+    if (((event->character == 'd') || (event->character == 'D')) && (g_gui.active_page == GUI_PAGE_HOME)) {
+        g_gui.desktop_details = !g_gui.desktop_details;
+        g_gui.focus_index = GUI_FOCUS_HOME;
+        set_status_message(g_gui.desktop_details ? "Desktop detail cards enabled." : "Desktop detail cards hidden.");
+        return;
+    }
+
+    if (((event->character == 'e') || (event->character == 'E')) && (g_gui.active_page == GUI_PAGE_SETTINGS)) {
+        g_gui.settings_key_echo = !g_gui.settings_key_echo;
+        g_gui.focus_index = GUI_FOCUS_SETTINGS;
+        set_status_message(g_gui.settings_key_echo ? "Settings: key echo enabled." : "Settings: key echo disabled.");
+        return;
+    }
+
+    if (((event->character == 'i') || (event->character == 'I')) && (g_gui.active_page == GUI_PAGE_ABOUT)) {
+        g_gui.about_notes = !g_gui.about_notes;
+        g_gui.focus_index = GUI_FOCUS_ABOUT;
+        set_status_message(g_gui.about_notes ? "About notes enabled." : "About notes disabled.");
+        return;
+    }
+
     if (event->character == '\b') {
         erase_input_char();
         return;
@@ -494,6 +585,8 @@ void gui_render(void) {
     content_height = g_gui.height - content_top;
     if (g_gui.active_page == GUI_PAGE_SETTINGS) {
         render_settings_page(content_top, content_height);
+    } else if (g_gui.active_page == GUI_PAGE_ABOUT) {
+        render_about_page(content_top, content_height);
     } else {
         render_home_page(content_top, content_height);
     }

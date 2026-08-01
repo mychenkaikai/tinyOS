@@ -99,8 +99,8 @@ validated before the cross compiler and `QEMU` runtimes are installed.
 
 `make check-multiarch-host-gui` adds a host display backend on top of that
 setup and verifies the shared text GUI path, including page switching, settings
-toggle behavior, input buffer clearing, and final screen contents for both
-architectures.
+toggle behavior, about-notes toggling, input buffer clearing, and final screen
+contents for both architectures.
 
 `make check-selftest` is the top-level closure command. It runs the current
 `x86_64` UI regression, the baseline regression, the host smoke checks, the

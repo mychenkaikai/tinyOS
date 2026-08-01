@@ -264,6 +264,35 @@ static void inject_input_events_if_needed(void) {
     event.type = INPUT_EVENT_KEY;
     event.pressed = true;
 
+    if (strcmp(g_selected_profile, "gui") == 0) {
+        event.scancode = 0x04u;
+        event.character = '3';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x17u;
+        event.character = 'i';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x03u;
+        event.character = '2';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x12u;
+        event.character = 'e';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x2Du;
+        event.character = 'x';
+        (void)input_push_event(&event);
+
+        event.scancode = 0x0Bu;
+        event.character = '0';
+        (void)input_push_event(&event);
+
+        g_injected_events = 6u;
+        return;
+    }
+
     event.scancode = 0x0Fu;
     event.character = '\t';
     (void)input_push_event(&event);
@@ -271,27 +300,6 @@ static void inject_input_events_if_needed(void) {
     event.scancode = 0x1Cu;
     event.character = '\n';
     (void)input_push_event(&event);
-
-    if (strcmp(g_selected_profile, "gui") == 0) {
-        event.scancode = 0x1Cu;
-        event.character = '\n';
-        (void)input_push_event(&event);
-
-        event.scancode = 0x2Du;
-        event.character = 'x';
-        (void)input_push_event(&event);
-
-        event.scancode = 0x0Fu;
-        event.character = '\t';
-        (void)input_push_event(&event);
-
-        event.scancode = 0x1Cu;
-        event.character = '\n';
-        (void)input_push_event(&event);
-
-        g_injected_events = 6u;
-        return;
-    }
 
     event.scancode = 0x2Du;
     event.character = 'x';
