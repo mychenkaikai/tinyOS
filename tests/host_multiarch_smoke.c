@@ -292,6 +292,23 @@ static void inject_input_events_if_needed(void) {
             return;
         }
 
+        if (strcmp(g_selected_scenario, "home-details-cycle") == 0) {
+            event.scancode = 0x02u;
+            event.character = '1';
+            (void)input_push_event(&event);
+
+            event.scancode = 0x20u;
+            event.character = 'd';
+            (void)input_push_event(&event);
+
+            event.scancode = 0x20u;
+            event.character = 'd';
+            (void)input_push_event(&event);
+
+            g_injected_events = 3u;
+            return;
+        }
+
         if (strcmp(g_selected_scenario, "about-notes") == 0) {
             event.scancode = 0x04u;
             event.character = '3';

@@ -5,9 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT_DIR}/build/host_multiarch_smoke"
 BIN_PATH="${BUILD_DIR}/host-multiarch-smoke"
 LOG_AARCH64_HOME="${BUILD_DIR}/aarch64-gui-home.log"
+LOG_AARCH64_HOME_CYCLE="${BUILD_DIR}/aarch64-gui-home-cycle.log"
 LOG_AARCH64_SETTINGS="${BUILD_DIR}/aarch64-gui-settings.log"
 LOG_AARCH64_ABOUT="${BUILD_DIR}/aarch64-gui-about.log"
 LOG_RISCV64_HOME="${BUILD_DIR}/riscv64-gui-home.log"
+LOG_RISCV64_HOME_CYCLE="${BUILD_DIR}/riscv64-gui-home-cycle.log"
 LOG_RISCV64_SETTINGS="${BUILD_DIR}/riscv64-gui-settings.log"
 LOG_RISCV64_ABOUT="${BUILD_DIR}/riscv64-gui-about.log"
 
@@ -37,6 +39,20 @@ require_log_line() {
     fi
 }
 
+forbid_log_line() {
+    local pattern="$1"
+    local description="$2"
+    local log_file="$3"
+
+    if grep -Eq "${pattern}" "${log_file}"; then
+        printf 'Captured log (%s):\n' "${log_file}" >&2
+        sed -n '1,260p' "${log_file}" >&2 || true
+        fail "${description}: unexpected pattern present: ${pattern}"
+    else
+        pass "${description}"
+    fi
+}
+
 mkdir -p "${BUILD_DIR}"
 
 gcc \
@@ -55,9 +71,11 @@ gcc \
     -o "${BIN_PATH}"
 
 "${BIN_PATH}" aarch64 gui home-details > "${LOG_AARCH64_HOME}" 2>&1
+"${BIN_PATH}" aarch64 gui home-details-cycle > "${LOG_AARCH64_HOME_CYCLE}" 2>&1
 "${BIN_PATH}" aarch64 gui settings-clear > "${LOG_AARCH64_SETTINGS}" 2>&1
 "${BIN_PATH}" aarch64 gui about-notes > "${LOG_AARCH64_ABOUT}" 2>&1
 "${BIN_PATH}" riscv64 gui home-details > "${LOG_RISCV64_HOME}" 2>&1
+"${BIN_PATH}" riscv64 gui home-details-cycle > "${LOG_RISCV64_HOME_CYCLE}" 2>&1
 "${BIN_PATH}" riscv64 gui settings-clear > "${LOG_RISCV64_SETTINGS}" 2>&1
 "${BIN_PATH}" riscv64 gui about-notes > "${LOG_RISCV64_ABOUT}" 2>&1
 
@@ -69,6 +87,14 @@ require_log_line '\[display\] row=03 text=\| >Home<    \[Settings\]     \[About\
 require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards enabled\.' "AArch64 home scenario enabled detail cards" "${LOG_AARCH64_HOME}"
 require_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "AArch64 home scenario rendered the detail panel" "${LOG_AARCH64_HOME}"
 require_log_line '\[host-smoke\] completed arch=aarch64 profile=gui scenario=home-details ticks=240 events=2' "AArch64 home scenario completed run" "${LOG_AARCH64_HOME}"
+
+require_log_line 'Architecture: aarch64' "AArch64 home cycle scenario reported architecture" "${LOG_AARCH64_HOME_CYCLE}"
+require_log_line '\[input\] key#=1 .*char=1' "AArch64 home cycle scenario processed HOME hotkey" "${LOG_AARCH64_HOME_CYCLE}"
+require_log_line '\[input\] key#=2 .*char=d' "AArch64 home cycle scenario processed first details hotkey" "${LOG_AARCH64_HOME_CYCLE}"
+require_log_line '\[input\] key#=3 .*char=d' "AArch64 home cycle scenario processed second details hotkey" "${LOG_AARCH64_HOME_CYCLE}"
+require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards hidden\.' "AArch64 home cycle scenario hid detail cards again" "${LOG_AARCH64_HOME_CYCLE}"
+forbid_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "AArch64 home cycle scenario cleared the detail panel" "${LOG_AARCH64_HOME_CYCLE}"
+require_log_line '\[host-smoke\] completed arch=aarch64 profile=gui scenario=home-details-cycle ticks=240 events=3' "AArch64 home cycle scenario completed run" "${LOG_AARCH64_HOME_CYCLE}"
 
 require_log_line 'Architecture: aarch64' "AArch64 settings scenario reported architecture" "${LOG_AARCH64_SETTINGS}"
 require_log_line 'Platform: aarch64-host-smoke' "AArch64 settings scenario reported platform" "${LOG_AARCH64_SETTINGS}"
@@ -102,6 +128,14 @@ require_log_line '\[display\] row=03 text=\| >Home<    \[Settings\]     \[About\
 require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards enabled\.' "RISC-V home scenario enabled detail cards" "${LOG_RISCV64_HOME}"
 require_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "RISC-V home scenario rendered the detail panel" "${LOG_RISCV64_HOME}"
 require_log_line '\[host-smoke\] completed arch=riscv64 profile=gui scenario=home-details ticks=240 events=2' "RISC-V home scenario completed run" "${LOG_RISCV64_HOME}"
+
+require_log_line 'Architecture: riscv64' "RISC-V home cycle scenario reported architecture" "${LOG_RISCV64_HOME_CYCLE}"
+require_log_line '\[input\] key#=1 .*char=1' "RISC-V home cycle scenario processed HOME hotkey" "${LOG_RISCV64_HOME_CYCLE}"
+require_log_line '\[input\] key#=2 .*char=d' "RISC-V home cycle scenario processed first details hotkey" "${LOG_RISCV64_HOME_CYCLE}"
+require_log_line '\[input\] key#=3 .*char=d' "RISC-V home cycle scenario processed second details hotkey" "${LOG_RISCV64_HOME_CYCLE}"
+require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards hidden\.' "RISC-V home cycle scenario hid detail cards again" "${LOG_RISCV64_HOME_CYCLE}"
+forbid_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "RISC-V home cycle scenario cleared the detail panel" "${LOG_RISCV64_HOME_CYCLE}"
+require_log_line '\[host-smoke\] completed arch=riscv64 profile=gui scenario=home-details-cycle ticks=240 events=3' "RISC-V home cycle scenario completed run" "${LOG_RISCV64_HOME_CYCLE}"
 
 require_log_line 'Architecture: riscv64' "RISC-V settings scenario reported architecture" "${LOG_RISCV64_SETTINGS}"
 require_log_line 'Platform: riscv64-host-smoke' "RISC-V settings scenario reported platform" "${LOG_RISCV64_SETTINGS}"
