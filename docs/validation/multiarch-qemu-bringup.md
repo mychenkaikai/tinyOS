@@ -2,8 +2,8 @@
 
 ## Goal
 
-This document tracks the prepared serial-only bring-up path for the next two
-kernel targets:
+This document tracks the serial-only bring-up path for the next two kernel
+targets:
 
 - `aarch64 virt`
 - `riscv64 virt`
@@ -18,7 +18,7 @@ required for this stage.
 
 ## Shared Kernel Contract
 
-The prepared `aarch64` and `riscv64` targets reuse these shared kernel files:
+The `aarch64` and `riscv64` targets reuse these shared kernel files:
 
 - `src/kernel/console.c`
 - `src/kernel/display.c`
@@ -34,7 +34,7 @@ serial-only bring-up stage.
 
 ## Platform And Architecture Pieces
 
-Prepared target-specific files:
+Target-specific files:
 
 - `arch/aarch64/arch.c`
 - `arch/aarch64/kernel_entry.S`
@@ -95,7 +95,7 @@ current environment before the architecture-specific checks are attempted.
 `make check-multiarch-host` only needs the host `gcc`. It runs the real shared
 kernel with stub `aarch64` and `riscv64` arch/platform registrations so the
 generic allocator, input path, event loop, and heartbeat logging can still be
-validated before the cross compiler and `QEMU` runtimes are installed.
+validated independently of the cross compiler and `QEMU` runtimes.
 
 `make check-multiarch-host-gui` adds a host display backend on top of that
 setup and verifies the shared text GUI path, including `HOME` detail toggling
@@ -109,7 +109,7 @@ tooling preflight, and conditionally the `QEMU` checks for `aarch64` and
 
 ## Expected Runtime Evidence
 
-The prepared `aarch64` check expects:
+The `aarch64` check expects:
 
 - `tinyOS kernel bootstrap ready.`
 - `Architecture: aarch64`
@@ -118,7 +118,7 @@ The prepared `aarch64` check expects:
 - `[event] heartbeat=`
 - `[gui] Headless GUI loop active.`
 
-The prepared `riscv64` check expects:
+The `riscv64` check expects:
 
 - `tinyOS kernel bootstrap ready.`
 - `Architecture: riscv64`
@@ -132,9 +132,7 @@ The prepared `riscv64` check expects:
 - `x86_64 + UEFI + LVGL`: verified
 - `aarch64/riscv64` shared kernel on host: verified by
   `make check-multiarch-host` and `make check-multiarch-host-gui`
-- `aarch64 virt`: prepared, not verified until both the cross compiler and
-  `QEMU` runtime are present
-- `riscv64 virt`: prepared, not verified until both the cross compiler and
-  `QEMU` runtime are present
+- `aarch64 virt`: verified by `make check-aarch64`
+- `riscv64 virt`: verified by `make check-riscv64`
 
 Do not collapse these into one blanket "multiarch verified" statement.

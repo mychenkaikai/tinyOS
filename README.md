@@ -18,7 +18,7 @@ boundaries, and a GOP framebuffer `LVGL` GUI path:
 - retained platform backends for the earlier `x86_64` text/keyboard path while the `UEFI` route is being brought forward
 - reserved `arch/platform` interface headers and `ARM64/RISC-V` port placeholders
 - a documented second-phase validation standard for `ARM64 virt` and `RISC-V virt`
-- prepared `aarch64` and `riscv64` serial-only `QEMU virt` bring-up targets that reuse the shared kernel event loop
+- verified `aarch64` and `riscv64` serial-only `QEMU virt` bring-up targets that reuse the shared kernel event loop
 - repeatable image build, `QEMU + OVMF` launch scripts and real-hardware prep notes
 
 ## Repository Layout
@@ -160,7 +160,7 @@ Run the full self-test closure for the current environment:
 make check-selftest
 ```
 
-Prepared cross-architecture build and run entry points:
+Cross-architecture build and run entry points:
 
 ```bash
 make build-aarch64
@@ -173,11 +173,12 @@ make check-riscv64
 ```
 
 These targets build a minimal serial-only kernel for `QEMU virt`, route logging
-through the platform console backend, and expect the shared allocator, event
-loop and heartbeat path to come up without any `x86_64`-specific code.
+through the platform console backend, and verify that the shared allocator,
+event loop and heartbeat path come up without any `x86_64`-specific code.
 
-`make check-multiarch-host` complements those targets when cross toolchains are
-not installed. It runs the real shared kernel on the host with stubbed
+`make check-multiarch-host` complements those targets even after the real
+cross-architecture checks are available. It runs the shared kernel on the host
+with stubbed
 `aarch64` and `riscv64` arch/platform objects, injects input events, and checks
 for the expected serial evidence from `kernel_main`, the input path, and the
 heartbeat task.
@@ -229,8 +230,8 @@ Current visual outcome on the framebuffer:
 ## Current Boundary
 
 - Supported now: `x86_64`, `UEFI`, `QEMU + OVMF`, `VirtualBox UEFI`
-- Prepared but not verified in this environment: `aarch64 virt` and
-  `riscv64 virt` serial bring-up targets plus matching `make check-*` scripts
+- Verified in this environment: `aarch64 virt` and `riscv64 virt` serial
+  bring-up targets plus matching `make check-*` scripts
 - Verified in this environment without cross toolchains: shared-kernel
   `aarch64/riscv64` host smoke path via `make check-multiarch-host` and
   `make check-multiarch-host-gui`
