@@ -23,6 +23,7 @@ uint8_t __kernel_end = 0u;
 static const char *g_selected_arch = "aarch64";
 static const char *g_selected_platform = "aarch64-host-smoke";
 static const char *g_selected_profile = "headless";
+static const char *g_selected_scenario = "default";
 static uint64_t g_host_ticks = 0u;
 static bool g_interrupts_ready = false;
 static bool g_interrupts_enabled = false;
@@ -211,6 +212,19 @@ static void configure_profile(const char *profile) {
     }
 }
 
+static void configure_scenario(const char *scenario) {
+    if ((scenario != NULL) && (scenario[0] != '\0')) {
+        g_selected_scenario = scenario;
+        return;
+    }
+
+    if (strcmp(g_selected_profile, "gui") == 0) {
+        g_selected_scenario = "settings-clear";
+    } else {
+        g_selected_scenario = "default";
+    }
+}
+
 const struct tinyos_arch_ops *tinyos_arch_current(void) {
     return &g_host_arch;
 }
@@ -265,6 +279,19 @@ static void inject_input_events_if_needed(void) {
     event.pressed = true;
 
     if (strcmp(g_selected_profile, "gui") == 0) {
+        if (strcmp(g_selected_scenario, "about-notes") == 0) {
+            event.scancode = 0x04u;
+            event.character = '3';
+            (void)input_push_event(&event);
+
+            event.scancode = 0x17u;
+            event.character = 'i';
+            (void)input_push_event(&event);
+
+            g_injected_events = 2u;
+            return;
+        }
+
         event.scancode = 0x04u;
         event.character = '3';
         (void)input_push_event(&event);
@@ -354,9 +381,10 @@ void event_loop_run(void) {
     }
 
     dump_display_snapshot();
-    printf("[host-smoke] completed arch=%s profile=%s ticks=%llu events=%u\n",
+    printf("[host-smoke] completed arch=%s profile=%s scenario=%s ticks=%llu events=%u\n",
            g_selected_arch,
            g_selected_profile,
+           g_selected_scenario,
            (unsigned long long)g_host_ticks,
            g_injected_events);
     exit(0);
@@ -384,6 +412,12 @@ int main(int argc, char **argv) {
         configure_profile(argv[2]);
     } else {
         configure_profile("headless");
+    }
+
+    if (argc > 3) {
+        configure_scenario(argv[3]);
+    } else {
+        configure_scenario((strcmp(g_selected_profile, "gui") == 0) ? "settings-clear" : "default");
     }
 
     kernel_main(&boot_info);
