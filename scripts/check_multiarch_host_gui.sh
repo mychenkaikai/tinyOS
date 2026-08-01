@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT_DIR}/build/host_multiarch_smoke"
 BIN_PATH="${BUILD_DIR}/host-multiarch-smoke"
+LOG_AARCH64_HOME="${BUILD_DIR}/aarch64-gui-home.log"
 LOG_AARCH64_SETTINGS="${BUILD_DIR}/aarch64-gui-settings.log"
 LOG_AARCH64_ABOUT="${BUILD_DIR}/aarch64-gui-about.log"
+LOG_RISCV64_HOME="${BUILD_DIR}/riscv64-gui-home.log"
 LOG_RISCV64_SETTINGS="${BUILD_DIR}/riscv64-gui-settings.log"
 LOG_RISCV64_ABOUT="${BUILD_DIR}/riscv64-gui-about.log"
 
@@ -52,10 +54,21 @@ gcc \
     "${ROOT_DIR}/tests/host_memory.c" \
     -o "${BIN_PATH}"
 
+"${BIN_PATH}" aarch64 gui home-details > "${LOG_AARCH64_HOME}" 2>&1
 "${BIN_PATH}" aarch64 gui settings-clear > "${LOG_AARCH64_SETTINGS}" 2>&1
 "${BIN_PATH}" aarch64 gui about-notes > "${LOG_AARCH64_ABOUT}" 2>&1
+"${BIN_PATH}" riscv64 gui home-details > "${LOG_RISCV64_HOME}" 2>&1
 "${BIN_PATH}" riscv64 gui settings-clear > "${LOG_RISCV64_SETTINGS}" 2>&1
 "${BIN_PATH}" riscv64 gui about-notes > "${LOG_RISCV64_ABOUT}" 2>&1
+
+require_log_line 'Architecture: aarch64' "AArch64 home scenario reported architecture" "${LOG_AARCH64_HOME}"
+require_log_line '\[input\] key#=1 .*char=1' "AArch64 home scenario processed HOME hotkey" "${LOG_AARCH64_HOME}"
+require_log_line '\[input\] key#=2 .*char=d' "AArch64 home scenario processed details hotkey" "${LOG_AARCH64_HOME}"
+require_log_line '\[display\] row=01 text=\| Page: HOME' "AArch64 home scenario stayed on the home page" "${LOG_AARCH64_HOME}"
+require_log_line '\[display\] row=03 text=\| >Home<    \[Settings\]     \[About\]   \[Clear Input\]' "AArch64 home scenario focused the home action" "${LOG_AARCH64_HOME}"
+require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards enabled\.' "AArch64 home scenario enabled detail cards" "${LOG_AARCH64_HOME}"
+require_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "AArch64 home scenario rendered the detail panel" "${LOG_AARCH64_HOME}"
+require_log_line '\[host-smoke\] completed arch=aarch64 profile=gui scenario=home-details ticks=240 events=2' "AArch64 home scenario completed run" "${LOG_AARCH64_HOME}"
 
 require_log_line 'Architecture: aarch64' "AArch64 settings scenario reported architecture" "${LOG_AARCH64_SETTINGS}"
 require_log_line 'Platform: aarch64-host-smoke' "AArch64 settings scenario reported platform" "${LOG_AARCH64_SETTINGS}"
@@ -80,6 +93,15 @@ require_log_line '\[display\] row=10 text=\| Status       About notes enabled\.'
 require_log_line '\[display\] row=18 text=\| Notes:  enabled' "AArch64 about scenario rendered enabled notes state" "${LOG_AARCH64_ABOUT}"
 require_log_line '\[display\] row=21 text=\| note: host smoke validates the screen contents' "AArch64 about scenario rendered host validation note" "${LOG_AARCH64_ABOUT}"
 require_log_line '\[host-smoke\] completed arch=aarch64 profile=gui scenario=about-notes ticks=240 events=2' "AArch64 about scenario completed run" "${LOG_AARCH64_ABOUT}"
+
+require_log_line 'Architecture: riscv64' "RISC-V home scenario reported architecture" "${LOG_RISCV64_HOME}"
+require_log_line '\[input\] key#=1 .*char=1' "RISC-V home scenario processed HOME hotkey" "${LOG_RISCV64_HOME}"
+require_log_line '\[input\] key#=2 .*char=d' "RISC-V home scenario processed details hotkey" "${LOG_RISCV64_HOME}"
+require_log_line '\[display\] row=01 text=\| Page: HOME' "RISC-V home scenario stayed on the home page" "${LOG_RISCV64_HOME}"
+require_log_line '\[display\] row=03 text=\| >Home<    \[Settings\]     \[About\]   \[Clear Input\]' "RISC-V home scenario focused the home action" "${LOG_RISCV64_HOME}"
+require_log_line '\[display\] row=10 text=\| Status       Desktop detail cards enabled\.' "RISC-V home scenario enabled detail cards" "${LOG_RISCV64_HOME}"
+require_log_line '\[display\] row=21 text=\| detail: timer ticks keep refreshing the runtime panel' "RISC-V home scenario rendered the detail panel" "${LOG_RISCV64_HOME}"
+require_log_line '\[host-smoke\] completed arch=riscv64 profile=gui scenario=home-details ticks=240 events=2' "RISC-V home scenario completed run" "${LOG_RISCV64_HOME}"
 
 require_log_line 'Architecture: riscv64' "RISC-V settings scenario reported architecture" "${LOG_RISCV64_SETTINGS}"
 require_log_line 'Platform: riscv64-host-smoke' "RISC-V settings scenario reported platform" "${LOG_RISCV64_SETTINGS}"
