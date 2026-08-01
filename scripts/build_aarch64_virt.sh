@@ -59,7 +59,7 @@ for source_file in "${ASM_SOURCES[@]}"; do
     OBJECTS+=("${object_file}")
 done
 
-"${CC}" -nostdlib -T "${ROOT_DIR}/arch/aarch64/linker.ld" -o "${KERNEL_ELF}" "${OBJECTS[@]}"
+"${CC}" -nostdlib -no-pie -T "${ROOT_DIR}/arch/aarch64/linker.ld" -o "${KERNEL_ELF}" "${OBJECTS[@]}"
 
 cat <<SUMMARY
 Built tinyOS aarch64 virt image:

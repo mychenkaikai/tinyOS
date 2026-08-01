@@ -16,7 +16,6 @@ fi
 exec qemu-system-aarch64 \
     -machine virt \
     -cpu cortex-a57 \
-    -bios none \
     -kernel "${IMAGE}" \
     -serial stdio \
     -monitor none \

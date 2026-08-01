@@ -44,6 +44,7 @@ CFLAGS=(
     -Wall
     -Wextra
     -Werror
+    -mcmodel=medany
     -march=rv64imac_zicsr_zifencei
     -mabi=lp64
     -I"${ROOT_DIR}/include"
@@ -57,11 +58,11 @@ done
 
 for source_file in "${ASM_SOURCES[@]}"; do
     object_file="${BUILD_DIR}/$(basename "${source_file%.*}").o"
-    "${CC}" -ffreestanding -march=rv64imac_zicsr_zifencei -mabi=lp64 -c "${source_file}" -o "${object_file}"
+    "${CC}" -ffreestanding -mcmodel=medany -march=rv64imac_zicsr_zifencei -mabi=lp64 -c "${source_file}" -o "${object_file}"
     OBJECTS+=("${object_file}")
 done
 
-"${CC}" -nostdlib -march=rv64imac_zicsr_zifencei -mabi=lp64 -T "${ROOT_DIR}/arch/riscv64/linker.ld" -o "${KERNEL_ELF}" "${OBJECTS[@]}"
+"${CC}" -nostdlib -no-pie -mcmodel=medany -march=rv64imac_zicsr_zifencei -mabi=lp64 -T "${ROOT_DIR}/arch/riscv64/linker.ld" -o "${KERNEL_ELF}" "${OBJECTS[@]}"
 
 cat <<SUMMARY
 Built tinyOS riscv64 virt image:

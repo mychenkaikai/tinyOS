@@ -15,7 +15,6 @@ fi
 
 exec qemu-system-riscv64 \
     -machine virt \
-    -bios none \
     -kernel "${IMAGE}" \
     -serial stdio \
     -monitor none \

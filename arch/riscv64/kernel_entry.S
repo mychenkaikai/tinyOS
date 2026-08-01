@@ -1,4 +1,4 @@
-.section .text
+.section .text.entry
 .align 2
 .globl _start
 .extern kernel_main
