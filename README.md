@@ -185,8 +185,8 @@ heartbeat task.
 `make check-multiarch-host-gui` extends that closure to the shared text GUI
 path. It attaches a host display backend, drives the `HOME / SETTINGS / ABOUT`
 page-local actions through the generic `1 / D`, `2 / E / 0`, and `3 / I`
-hotkey paths, and verifies the rendered screen content for both `aarch64` and
-`riscv64`.
+hotkey paths, verifies that the `HOME` detail panel can be turned on and back
+off, and checks the rendered screen content for both `aarch64` and `riscv64`.
 
 `make check-selftest` runs the current `x86_64` UI and baseline checks, the
 multiarch host smoke path, the multiarch preflight, and automatically folds in

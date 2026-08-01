@@ -98,9 +98,9 @@ generic allocator, input path, event loop, and heartbeat logging can still be
 validated before the cross compiler and `QEMU` runtimes are installed.
 
 `make check-multiarch-host-gui` adds a host display backend on top of that
-setup and verifies the shared text GUI path, including `HOME` detail toggling,
-`SETTINGS` key-echo toggling plus input clearing, `ABOUT` notes toggling, and
-the rendered screen contents for both architectures.
+setup and verifies the shared text GUI path, including `HOME` detail toggling
+in both directions, `SETTINGS` key-echo toggling plus input clearing, `ABOUT`
+notes toggling, and the rendered screen contents for both architectures.
 
 `make check-selftest` is the top-level closure command. It runs the current
 `x86_64` UI regression, the baseline regression, the host smoke checks, the
